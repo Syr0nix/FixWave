@@ -19,26 +19,81 @@ title Wave Installer (RedFox)
 echo ==================================================
 echo              RedFox Wave Installer
 echo ==================================================
-echo [1] Install Wave 
-echo [2] Auto Fix Runtimes 
-echo [3] Auto Fix Volume Label Syntax Error
-echo [4] Install Roblox Bootstrapper
+echo [1] Install Wave
+echo [2] Install Wave For Vps 
+echo [3] Auto Fix Runtimes 
+echo [4] Auto Fix Volume Label Syntax Error
+echo [5] Install Roblox Bootstrapper
 echo [X] Exit
 echo ==================================================
 set /p "MAINCHOICE=Choose option: "
 
 if /I "%MAINCHOICE%"=="1" goto install_wave
-if /I "%MAINCHOICE%"=="2" goto Auto_Fix_Runtimes
-if /I "%MAINCHOICE%"=="3" goto Auto_Fix_Error
-if /I "%MAINCHOICE%"=="4" goto boot_menu
+if /I "%MAINCHOICE%"=="2" goto install_Wave_For_Vps
+if /I "%MAINCHOICE%"=="3" goto Auto_Fix_Runtimes
+if /I "%MAINCHOICE%"=="4" goto Auto_Fix_Error
+if /I "%MAINCHOICE%"=="5" goto boot_menu
 if /I "%MAINCHOICE%"=="X" exit /b
 goto mainmenu
+
+:install_Wave_For_Vps
+cls
+echo ===================== WAVE INSTALL (VPS MODE) =====================
+echo.
+
+:: Cleanup old installs
+taskkill /f /im "Wave.exe" >nul 2>&1
+taskkill /f /im "Wave-Setup.exe" >nul 2>&1
+rmdir /s /q "C:\WaveSetup" 2>nul
+rmdir /s /q "%ProgramData%\Wave" 2>nul
+
+:: Create directory
+set "TargetDir=C:\WaveSetup"
+if not exist "%TargetDir%" mkdir "%TargetDir%"
+
+:: ===================== Install runtimes =====================
+echo [*] Installing .NET Desktop Runtimes (6/8/9)...
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/9.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet9.exe'"
+if exist "%TargetDir%\dotnet9.exe" start /wait "" "%TargetDir%\dotnet9.exe" /install /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet8.exe'"
+if exist "%TargetDir%\dotnet8.exe" start /wait "" "%TargetDir%\dotnet8.exe" /install /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/6.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet6.exe'"
+if exist "%TargetDir%\dotnet6.exe" start /wait "" "%TargetDir%\dotnet6.exe" /install /quiet /norestart
+
+echo [*] Installing VC++ Redistributables...
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TargetDir%\vcredist_x64.exe'"
+if exist "%TargetDir%\vcredist_x64.exe" start /wait "" "%TargetDir%\vcredist_x64.exe" /install /quiet /norestart
+
+echo [*] Installing Node.js (system-wide)...
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi' -OutFile '%TargetDir%\nodejs.msi'"
+if exist "%TargetDir%\nodejs.msi" start /wait msiexec /i "%TargetDir%\nodejs.msi" /quiet /norestart ALLUSERS=1
+
+:: ===================== Install Wave =====================
+echo [*] Downloading Wave Bootstrapper...
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://cdn.wavify.cc/v3/WaveBootstrapper.exe' -OutFile '%TargetDir%\Wave-Setup.exe'"
+
+if exist "%TargetDir%\Wave-Setup.exe" (
+    echo [Success] Wave-Setup downloaded.
+    powershell -NoProfile -Command "Start-Process -FilePath '%TargetDir%\Wave-Setup.exe' -Verb RunAs"
+) else (
+    echo [Error] Failed to download Wave-Setup.exe
+)
+
+echo.
+echo [*] VPS install finished. Please reboot your VPS manually from your host panel if needed.
+pause
+goto mainmenu
+
+
 
 :: ===================== Auto Fix Runtimes =====================
 :Auto_Fix_Runtimes
 cls
 echo ===================== Auto fix Runtimes =====================
 echo.
+if not exist "%TargetDir%" mkdir "%TargetDir%"
 echo ===================== .NET DESKTOP RUNTIMES =====================
 echo [*] Downloading .NET 9 Desktop Runtime...
 powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/9.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet9.exe'"
