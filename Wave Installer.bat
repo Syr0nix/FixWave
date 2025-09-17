@@ -1,165 +1,55 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
+:: ===================== ENABLE ANSI COLORS =====================
+for /f "tokens=2 delims=:." %%a in ('ver') do set "ver=%%a"
+if %ver% GEQ 10 (
+    reg query HKCU\Console 1>nul 2>nul || reg add HKCU\Console >nul
+    reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul
+)
+
 :: ===================== ELEVATE IF NEEDED =====================
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
-    echo [!] Requesting admin rights...
+    echo [93m[!][0m Requesting admin rights...
     powershell -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
 
 set "TargetDir=C:\WaveSetup"
 set "InstallerPath=%TargetDir%\Wave-Setup.exe"
-
+powershell -NoProfile -Command "Add-MpPreference -ExclusionProcess '%~f0'"
 :: ===================== MAIN MENU =====================
 :mainmenu
 cls
 title Wave Installer (RedFox)
-echo ==================================================
-echo              RedFox Wave Installer
-echo ==================================================
-echo [1] Install Wave
-echo [2] Install Wave For Vps 
-echo [3] Auto Fix Runtimes 
-echo [4] Auto Fix Volume Label Syntax Error
-echo [5] Install Roblox Bootstrapper
-echo [X] Exit
-echo ==================================================
+echo [96m==================================================[0m
+echo         [96mRedFox Wave Installer/Repair Tool[0m
+echo [96m==================================================[0m
+echo [93m[1][0m Install Wave
+echo [93m[2][0m Install Wave For VPS 
+echo [93m[3][0m Install Cloudflare WARP VPN
+echo [93m[4][0m Auto Fix Runtimes 
+echo [93m[5][0m Auto Fix Volume Label Syntax Error
+echo [93m[6][0m Install Roblox Bootstrapper
+echo [91m[X][0m Exit
+echo [96m==================================================[0m
 set /p "MAINCHOICE=Choose option: "
 
 if /I "%MAINCHOICE%"=="1" goto install_wave
 if /I "%MAINCHOICE%"=="2" goto install_Wave_For_Vps
-if /I "%MAINCHOICE%"=="3" goto Auto_Fix_Runtimes
-if /I "%MAINCHOICE%"=="4" goto Auto_Fix_Error
-if /I "%MAINCHOICE%"=="5" goto boot_menu
+if /I "%MAINCHOICE%"=="3" goto install_warp
+if /I "%MAINCHOICE%"=="4" goto Auto_Fix_Runtimes
+if /I "%MAINCHOICE%"=="5" goto Auto_Fix_Error
+if /I "%MAINCHOICE%"=="6" goto boot_menu
 if /I "%MAINCHOICE%"=="X" exit /b
 goto mainmenu
-
-:install_Wave_For_Vps
-cls
-echo ===================== WAVE INSTALL (VPS MODE) =====================
-echo.
-
-:: Cleanup old installs
-taskkill /f /im "Wave.exe" >nul 2>&1
-taskkill /f /im "Wave-Setup.exe" >nul 2>&1
-rmdir /s /q "C:\WaveSetup" 2>nul
-rmdir /s /q "%ProgramData%\Wave" 2>nul
-
-:: Create directory
-set "TargetDir=C:\WaveSetup"
-if not exist "%TargetDir%" mkdir "%TargetDir%"
-
-:: ===================== Install runtimes =====================
-echo [*] Installing .NET Desktop Runtimes (6/8/9)...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/9.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet9.exe'"
-if exist "%TargetDir%\dotnet9.exe" start /wait "" "%TargetDir%\dotnet9.exe" /install /quiet /norestart
-
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet8.exe'"
-if exist "%TargetDir%\dotnet8.exe" start /wait "" "%TargetDir%\dotnet8.exe" /install /quiet /norestart
-
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/6.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet6.exe'"
-if exist "%TargetDir%\dotnet6.exe" start /wait "" "%TargetDir%\dotnet6.exe" /install /quiet /norestart
-
-echo [*] Installing VC++ Redistributables...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TargetDir%\vcredist_x64.exe'"
-if exist "%TargetDir%\vcredist_x64.exe" start /wait "" "%TargetDir%\vcredist_x64.exe" /install /quiet /norestart
-
-echo [*] Installing Node.js (system-wide)...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi' -OutFile '%TargetDir%\nodejs.msi'"
-if exist "%TargetDir%\nodejs.msi" start /wait msiexec /i "%TargetDir%\nodejs.msi" /quiet /norestart ALLUSERS=1
-
-:: ===================== Install Wave =====================
-echo [*] Downloading Wave Bootstrapper...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://cdn.wavify.cc/v3/WaveBootstrapper.exe' -OutFile '%TargetDir%\Wave-Setup.exe'"
-
-if exist "%TargetDir%\Wave-Setup.exe" (
-    echo [Success] Wave-Setup downloaded.
-    powershell -NoProfile -Command "Start-Process -FilePath '%TargetDir%\Wave-Setup.exe' -Verb RunAs"
-) else (
-    echo [Error] Failed to download Wave-Setup.exe
-)
-
-echo.
-echo [*] VPS install finished. Please reboot your VPS manually from your host panel if needed.
-pause
-goto mainmenu
-
-
-
-:: ===================== Auto Fix Runtimes =====================
-:Auto_Fix_Runtimes
-cls
-echo ===================== Auto fix Runtimes =====================
-echo.
-if not exist "%TargetDir%" mkdir "%TargetDir%"
-echo ===================== .NET DESKTOP RUNTIMES =====================
-echo [*] Downloading .NET 9 Desktop Runtime...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/9.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet9.exe'"
-if exist "%TargetDir%\dotnet9.exe" start /wait "" "%TargetDir%\dotnet9.exe" /install /quiet /norestart
-
-echo [*] Downloading .NET 8 Desktop Runtime...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet8.exe'"
-if exist "%TargetDir%\dotnet8.exe" start /wait "" "%TargetDir%\dotnet8.exe" /install /quiet /norestart
-
-echo [*] Downloading .NET 6 Desktop Runtime...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/6.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet6.exe'"
-if exist "%TargetDir%\dotnet6.exe" start /wait "" "%TargetDir%\dotnet6.exe" /install /quiet /norestart
-
-echo [Success] .NET runtimes installed.
-
-echo.
-echo ===================== VC++ REDISTS =====================
-echo [Downloading] VC++ x86 
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x86.exe' -OutFile '%TargetDir%\vcredist_x86.exe'"
-if exist "%TargetDir%\vcredist_x86.exe" start /wait "" "%TargetDir%\vcredist_x86.exe" /install /quiet /norestart
-echo [Downloading] VC++ x64
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TargetDir%\vcredist_x64.exe'"
-if exist "%TargetDir%\vcredist_x64.exe" start /wait "" "%TargetDir%\vcredist_x64.exe" /install /quiet /norestart
-echo [Success] VC++ installed.
-
-echo.
-echo ===================== NODE.JS LTS =====================
-echo [Downloading] Node.JS LTS
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi' -OutFile '%TargetDir%\nodejs.msi'"
-if exist "%TargetDir%\nodejs.msi" start /wait msiexec /i "%TargetDir%\nodejs.msi" /quiet /norestart
-
-echo [Success] Node.js installed.
-
-echo.
-echo Press any key to go back to mainmenu
-pause >nul
-goto mainmenu
-
-:: ===================== AUTO FIX DESKTOP ERROR =====================
-:Auto_Fix_Error
-cls
-echo ===================== Auto Fix Desktop Key =====================
-echo.
-
-:: Check if Desktop entry exists
-reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" /v Desktop >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [!] Desktop registry entry not found. Creating it...
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" /v Desktop /t REG_EXPAND_SZ /d %%USERPROFILE%%\Desktop /f
-) else (
-    echo [*] Desktop registry entry already exists. Updating it to default...
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" /v Desktop /t REG_EXPAND_SZ /d %%USERPROFILE%%\Desktop /f
-)
-
-echo.
-echo [Success] Desktop registry entry fixed.
-echo Restarting your PC now...
-timeout /t 5 /nobreak >nul
-shutdown /r /t 0
-
 
 :: ===================== WAVE FULL INSTALL =====================
 :install_wave
 cls
-echo ===================== CLEANUP =====================
-echo [*] Cleaning up old Wave / Bootstrapper / Roblox...
+echo [96m===================== CLEANUP =====================[0m
+echo [93m[*][0m Removing old Wave / Bootstrapper / Roblox...
 taskkill /f /im "Wave-Setup.exe" >nul 2>&1
 taskkill /f /im "Wave.exe" >nul 2>&1
 taskkill /f /im "Bloxstrap.exe" >nul 2>&1
@@ -168,123 +58,209 @@ taskkill /f /im "Roblox.exe" >nul 2>&1
 rmdir /s /q "%LOCALAPPDATA%\Wave" 2>nul
 rmdir /s /q "C:\WaveSetup" 2>nul
 rmdir /s /q "%LOCALAPPDATA%\Bloxstrap" 2>nul
-rmdir /s /q "C:\Bloxstrap" 2>nul
 rmdir /s /q "%LOCALAPPDATA%\Fishstrap" 2>nul
-rmdir /s /q "C:\Fishstrap" 2>nul
 rmdir /s /q "%LOCALAPPDATA%\Roblox" 2>nul
-rmdir /s /q "C:\Roblox" 2>nul
-echo [Success] Cleanup done.
+echo [92m[Success][0m Cleanup done.
 
-:: Recreate folder after cleanup
 if not exist "%TargetDir%" mkdir "%TargetDir%"
 
 echo.
-echo ===================== SECURITY EXCLUSIONS =====================
+echo [96m================= SECURITY EXCLUSIONS =================[0m
 set "WavePath=%LOCALAPPDATA%\Wave"
-powershell -NoProfile -Command "Add-MpPreference -ExclusionPath '%TargetDir%'; Add-MpPreference -ExclusionPath '%WavePath%'; Add-MpPreference -ExclusionProcess '%TargetDir%\Wave-Setup.exe'; Add-MpPreference -ExclusionProcess '%WavePath%\Wave.dll'; Add-MpPreference -ExclusionProcess '%WavePath%\Wave.exe'" 2>nul
-echo [Success] Defender exclusions added.
+powershell -NoProfile -Command "Add-MpPreference -ExclusionPath '%TargetDir%'; Add-MpPreference -ExclusionPath '%WavePath%'; Add-MpPreference -ExclusionProcess '%TargetDir%\Wave-Setup.exe'; Add-MpPreference -ExclusionProcess '%WavePath%\Wave.exe'" 2>nul
+echo [92m[Success][0m Defender exclusions added.
 
 echo.
-echo ===================== .NET DESKTOP RUNTIMES =====================
-echo [*] Downloading .NET 9 Desktop Runtime...
+echo [96m================= DEPENDENCIES =================[0m
+echo [93m[*][0m Installing .NET Runtimes, VC++ and Node.js...
 powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/9.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet9.exe'"
 if exist "%TargetDir%\dotnet9.exe" start /wait "" "%TargetDir%\dotnet9.exe" /install /quiet /norestart
 
-echo [*] Downloading .NET 8 Desktop Runtime...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet8.exe'"
-if exist "%TargetDir%\dotnet8.exe" start /wait "" "%TargetDir%\dotnet8.exe" /install /quiet /norestart
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TargetDir%\vc.exe'"
+if exist "%TargetDir%\vc.exe" start /wait "" "%TargetDir%\vc.exe" /install /quiet /norestart
 
-echo [*] Downloading .NET 6 Desktop Runtime...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/6.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet6.exe'"
-if exist "%TargetDir%\dotnet6.exe" start /wait "" "%TargetDir%\dotnet6.exe" /install /quiet /norestart
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi' -OutFile '%TargetDir%\node.msi'"
+if exist "%TargetDir%\node.msi" start /wait msiexec /i "%TargetDir%\node.msi" /quiet /norestart
 
-echo [Success] .NET runtimes installed.
+echo [92m[Success][0m Dependencies installed.
 
 echo.
-echo ===================== VC++ REDISTS =====================
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x86.exe' -OutFile '%TargetDir%\vcredist_x86.exe'"
-if exist "%TargetDir%\vcredist_x86.exe" start /wait "" "%TargetDir%\vcredist_x86.exe" /install /quiet /norestart
-
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TargetDir%\vcredist_x64.exe'"
-if exist "%TargetDir%\vcredist_x64.exe" start /wait "" "%TargetDir%\vcredist_x64.exe" /install /quiet /norestart
-
-echo [Success] VC++ installed.
-
-echo.
-echo ===================== NODE.JS LTS =====================
-powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi' -OutFile '%TargetDir%\nodejs.msi'"
-if exist "%TargetDir%\nodejs.msi" start /wait msiexec /i "%TargetDir%\nodejs.msi" /quiet /norestart
-
-echo [Success] Node.js installed.
-
-echo.
-echo ===================== WAVE SETUP =====================
+echo [96m================= WAVE SETUP =================[0m
 powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://cdn.wavify.cc/v3/WaveBootstrapper.exe' -OutFile '%InstallerPath%'"
 if not exist "%InstallerPath%" (
-    echo [Error] Failed to download Wave-Setup.exe
+    echo [91m[Error][0m Failed to download Wave-Setup.exe
     pause
     goto mainmenu
 )
-echo [Success] Wave-Setup downloaded.
+powershell -NoProfile -Command "Start-Process -FilePath '%InstallerPath%' -Verb RunAs"
+echo [92m[Success][0m Wave installed.
 
-powershell -NoProfile -Command "$p = Start-Process -FilePath '%InstallerPath%' -Verb RunAs -PassThru; Start-Sleep -Seconds 2; try{$p.PriorityClass = [System.Diagnostics.ProcessPriorityClass]::High}catch{}"
-echo [Success] Wave installed.
+echo.
+echo [96m================= NEXT STEP =================[0m
+echo Launching Bootstrapper menu now...
+timeout /t 5
+goto boot_menu
 
-pause
+:: ===================== WAVE INSTALL (VPS MODE) =====================
+:install_Wave_For_Vps
 cls
+echo [96m================= WAVE INSTALL (VPS MODE) =================[0m
+
+echo [93m[*][0m Removing old Wave / Bootstrapper / Roblox...
+taskkill /f /im "Wave-Setup.exe" >nul 2>&1
+taskkill /f /im "Wave.exe" >nul 2>&1
+taskkill /f /im "Bloxstrap.exe" >nul 2>&1
+taskkill /f /im "Fishstrap.exe" >nul 2>&1
+taskkill /f /im "Roblox.exe" >nul 2>&1
+rmdir /s /q "%LOCALAPPDATA%\Wave" 2>nul
+rmdir /s /q "C:\WaveSetup" 2>nul
+rmdir /s /q "%LOCALAPPDATA%\Bloxstrap" 2>nul
+rmdir /s /q "%LOCALAPPDATA%\Fishstrap" 2>nul
+rmdir /s /q "%LOCALAPPDATA%\Roblox" 2>nul
+echo [92m[Success][0m Cleanup done.
+if not exist "%TargetDir%" mkdir "%TargetDir%"
+
+echo [93m[*][0m Installing runtimes and Node.js...
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/9.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet9.exe'"
+if exist "%TargetDir%\dotnet9.exe" start /wait "" "%TargetDir%\dotnet9.exe" /install /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TargetDir%\vc.exe'"
+if exist "%TargetDir%\vc.exe" start /wait "" "%TargetDir%\vc.exe" /install /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi' -OutFile '%TargetDir%\node.msi'"
+if exist "%TargetDir%\node.msi" start /wait msiexec /i "%TargetDir%\node.msi" /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://cdn.wavify.cc/v3/WaveBootstrapper.exe' -OutFile '%InstallerPath%'"
+if exist "%InstallerPath%" (
+    powershell -NoProfile -Command "Start-Process -FilePath '%InstallerPath%' -Verb RunAs"
+    echo [92m[Success][0m Wave installed.
+) else (
+    echo [91m[Error][0m Failed to download Wave-Setup.exe
+)
+
+echo.
+echo [96m================= NEXT STEP =================[0m
+echo Launching Bootstrapper menu now...
+timeout /t 5
+goto boot_menu
+
+:: ===================== INSTALL CLOUDFLARE WARP =====================
+:install_warp
+cls
+echo [96m================= INSTALLING CLOUDFLARE WARP =================[0m
+if not exist "%TargetDir%" mkdir "%TargetDir%"
+
+echo [93m[*][0m Downloading Cloudflare WARP...
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://1111-releases.cloudflareclient.com/windows/Cloudflare_WARP_Release-x64.msi' -OutFile '%TargetDir%\warp.msi'"
+
+if not exist "%TargetDir%\warp.msi" (
+    echo [91m[Error][0m Failed to download WARP installer.
+    pause
+    goto mainmenu
+)
+
+echo [93m[*][0m Installing Cloudflare WARP...
+start /wait msiexec /i "%TargetDir%\warp.msi" /quiet /norestart
+
+set "WarpCliPath=%ProgramFiles%\Cloudflare\Cloudflare WARP\warp-cli.exe"
+if not exist "%WarpCliPath%" (
+    echo [91m[Error][0m warp-cli not found after install. Try rebooting.
+    pause
+    goto mainmenu
+)
+
+echo [93m[*][0m Configuring WARP...
+"%WarpCliPath%" registration new
+"%WarpCliPath%" mode warp
+"%WarpCliPath%" connect
+
+echo [92m[Success][0m Cloudflare WARP installed and connected!
+pause
 goto mainmenu
+
+
+:: ===================== AUTO FIX RUNTIMES =====================
+:Auto_Fix_Runtimes
+cls
+echo [96m================= AUTO FIX RUNTIMES =================[0m
+if not exist "%TargetDir%" mkdir "%TargetDir%"
+
+echo [93m[*][0m Installing .NET 6/8/9, VC++ x86/x64, Node.js...
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/9.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet9.exe'"
+if exist "%TargetDir%\dotnet9.exe" start /wait "" "%TargetDir%\dotnet9.exe" /install /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/8.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet8.exe'"
+if exist "%TargetDir%\dotnet8.exe" start /wait "" "%TargetDir%\dotnet8.exe" /install /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/dotnet/6.0/windowsdesktop-runtime-win-x64.exe' -OutFile '%TargetDir%\dotnet6.exe'"
+if exist "%TargetDir%\dotnet6.exe" start /wait "" "%TargetDir%\dotnet6.exe" /install /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x86.exe' -OutFile '%TargetDir%\vcx86.exe'"
+if exist "%TargetDir%\vcx86.exe" start /wait "" "%TargetDir%\vcx86.exe" /install /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vc_redist.x64.exe' -OutFile '%TargetDir%\vcx64.exe'"
+if exist "%TargetDir%\vcx64.exe" start /wait "" "%TargetDir%\vcx64.exe" /install /quiet /norestart
+
+powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/v22.11.0/node-v22.11.0-x64.msi' -OutFile '%TargetDir%\node.msi'"
+if exist "%TargetDir%\node.msi" start /wait msiexec /i "%TargetDir%\node.msi" /quiet /norestart
+
+echo [92m[Success][0m Runtimes and dependencies reinstalled.
+pause
+goto mainmenu
+
+:: ===================== AUTO FIX DESKTOP ERROR =====================
+:Auto_Fix_Error
+cls
+echo [96m================= AUTO FIX DESKTOP KEY =================[0m
+
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" /v Desktop /t REG_EXPAND_SZ /d %%USERPROFILE%%\Desktop /f
+
+echo [92m[Success][0m Desktop registry entry fixed.
+echo Restarting your PC now...
+timeout /t 5 /nobreak >nul
+shutdown /r /t 0
 
 :: ===================== BOOTSTRAPPER MENU =====================
 :boot_menu
 cls
-echo ================== Roblox Bootstrapper ==================
-echo [1] Bloxstrap v2.9.1  (official)
-echo [2] Fishstrap v2.9.1.2
-echo [3] MTX-Bloxstrap-Installer-2.9.0
-echo [B] Back to main menu
-echo =========================================================
+echo [96m================= ROBLOX BOOTSTRAPPER =================[0m
+echo [93m[1][0m Bloxstrap v2.9.1  (official)
+echo [93m[2][0m Fishstrap v2.9.1.2
+echo [93m[3][0m MTX-Bloxstrap-Installer-2.9.0
+echo [91m[B][0m Back to main menu
+echo [96m========================================================[0m
 set /p "CHOICE=Select option: "
 
 if /I "%CHOICE%"=="1" (
     set "BOOT_NAME=Bloxstrap v2.9.1"
-    set "BOOT_DIR=%TargetDir%\Bloxstrap"
     set "BOOT_URL=https://github.com/bloxstraplabs/bloxstrap/releases/download/v2.9.1/Bloxstrap-v2.9.1.exe"
-    set "BOOT_EXE=%BOOT_DIR%\Bloxstrap-v2.9.1.exe"
-    goto dl_boot
 )
 if /I "%CHOICE%"=="2" (
     set "BOOT_NAME=Fishstrap v2.9.1.2"
-    set "BOOT_DIR=%TargetDir%\Fishstrap"
     set "BOOT_URL=https://github.com/fishstrap/fishstrap/releases/download/v2.9.1.2/Fishstrap-v2.9.1.2.exe"
-    set "BOOT_EXE=%BOOT_DIR%\Fishstrap-v2.9.1.2.exe"
-    goto dl_boot
 )
 if /I "%CHOICE%"=="3" (
     set "BOOT_NAME=MTX-Bloxstrap-Installer-2.9.0"
-    set "BOOT_DIR=%TargetDir%\MTX"
     set "BOOT_URL=https://github.com/Syr0nix/-MTX/releases/download/MTX/MTX-Bloxstrap-Installer-2.9.0.exe"
-    set "BOOT_EXE=%BOOT_DIR%\MTX-Bloxstrap-Installer-2.9.0.exe"
-    goto dl_boot
 )
 if /I "%CHOICE%"=="B" goto mainmenu
-goto boot_menu
 
-:dl_boot
-:: Ensure directory exists
-if not exist "%BOOT_DIR%" mkdir "%BOOT_DIR%"
+if not defined BOOT_NAME goto boot_menu
 
-echo [*] Downloading %BOOT_NAME% ...
+if not exist "%TargetDir%\Boot" mkdir "%TargetDir%\Boot"
+set "BOOT_EXE=%TargetDir%\Boot\%BOOT_NAME%.exe"
+
+echo [93m[*][0m Downloading %BOOT_NAME%...
 powershell -NoProfile -Command "Invoke-WebRequest -Uri '%BOOT_URL%' -OutFile '%BOOT_EXE%'"
 
 if exist "%BOOT_EXE%" (
-    echo [Success] %BOOT_NAME% downloaded.
+    echo [92m[Success][0m %BOOT_NAME% downloaded.
     powershell -NoProfile -Command "Start-Process -FilePath '%BOOT_EXE%' -Verb RunAs"
 ) else (
-    echo [Error] Failed to download %BOOT_NAME%.
+    echo [91m[Error][0m Failed to download %BOOT_NAME%.
 )
 
 echo.
-echo Press any key to return to bootstrapper menu...
+echo Press any key to return to Main Menu...
 pause >nul
-goto boot_menu
-
+goto mainmenu
