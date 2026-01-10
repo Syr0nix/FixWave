@@ -1,7 +1,27 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-:: ===================== GITHUB AUTO-UPDATE ===========================
+:: ===================== FLAGS =====================
+set "ARG_UPDATED=0"
+set "ARG_NOUPDATE=0"
+set "ARG_ELEVATED=0"
+
+echo %* | find /I "--updated"  >nul && set "ARG_UPDATED=1"
+echo %* | find /I "--noupdate" >nul && set "ARG_NOUPDATE=1"
+echo %* | find /I "--elevated" >nul && set "ARG_ELEVATED=1"
+
+:: ===================== ELEVATE FIRST =====================
+if "%ARG_ELEVATED%"=="0" (
+    NET SESSION >nul 2>&1
+    if %errorlevel% NEQ 0 (
+        echo [ ! ] Requesting admin rights...
+        powershell -NoProfile -WindowStyle Hidden -Command ^
+          "Start-Process '%~f0' -Verb RunAs -ArgumentList '--elevated %*'"
+        exit /b
+    )
+)
+
+:: ===================== GITHUB AUTO-UPDATE =====================
 set "APP_NAME=RedFox Wave Installer"
 set "CURRENT_VER=2.0.4"
 
@@ -14,9 +34,12 @@ set "RAW_BASE=https://raw.githubusercontent.com/%GH_USER%/%GH_REPO%/%GH_BRANCH%"
 set "VER_URL=%RAW_BASE%/version.txt"
 set "BAT_URL=%RAW_BASE%/%GH_BAT_PATH%"
 
-:: Skip update check if we were relaunched by updater (or user disables)
-echo %* | find /I "--updated" >nul && goto :after_update
-echo %* | find /I "--noupdate" >nul && goto :after_update
+:: Skip update if disabled, or if we just updated
+if "%ARG_NOUPDATE%"=="1" goto :after_update
+if "%ARG_UPDATED%"=="1"  goto :after_update
+
+:: Clear stale lock (prevents "stuck updater")
+del "%TEMP%\rf_fixwave_update.lock" >nul 2>&1
 
 :: Lock so it can't spawn multiple updater runs
 set "UPD_LOCK=%TEMP%\rf_fixwave_update.lock"
@@ -31,7 +54,6 @@ for /f "usebackq delims=" %%V in (`
   "try { (Invoke-WebRequest -UseBasicParsing ('%VER_URL%?cb=%CB%')).Content.Trim() } catch { '' }"
 `) do set "LATEST_VER=%%V"
 
-:: DEBUG (remove later if you want)
 echo [dbg] CURRENT=%CURRENT_VER%
 echo [dbg] LATEST=%LATEST_VER%
 echo.
@@ -47,11 +69,11 @@ powershell -NoProfile -Command ^
   "try { Invoke-WebRequest -UseBasicParsing ('%BAT_URL%?cb=%CB%') -OutFile '%TMP_NEW%' ; exit 0 } catch { exit 1 }"
 if errorlevel 1 goto :after_update_cleanup
 
-:: Apply update hidden (no extra CMD windows)
-set "TARGET=%~f0"
 echo [*] Applying update...
+
+:: Overwrite + relaunch (keep admin + mark updated)
 powershell -NoProfile -WindowStyle Hidden -Command ^
-  "Start-Sleep -Milliseconds 600; Copy-Item -Force '%TMP_NEW%' '%TARGET%'; Start-Process '%TARGET%' -ArgumentList '--updated'; Remove-Item -Force '%TMP_NEW%'" 
+  "Start-Sleep -Milliseconds 600; Copy-Item -Force '%TMP_NEW%' '%~f0'; Start-Process '%~f0' -Verb RunAs -ArgumentList '--elevated --updated'; Remove-Item -Force '%TMP_NEW%'"
 
 del "%UPD_LOCK%" >nul 2>&1
 exit /b
@@ -442,6 +464,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
