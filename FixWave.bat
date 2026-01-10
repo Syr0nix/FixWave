@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.0.7"
+set "CURRENT_VER=2.0.8"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -117,7 +117,7 @@ echo +==========================================================================
 echo ^| [1] Install Wave                                                         ^|
 echo ^| [2] Fix Module Error                                                     ^|
 echo ^| [3] Install Cloudflare WARP (VPN/ISP Bypass)                             ^|
-echo ^| [4] Wave Manual Inject (OutDated)                                        ^|
+echo ^| [4] Whitelist Wave to Anti-Virus (Defender)                              ^|
 echo ^| [5] Auto Fix Dependencies (Reinstalls files needed to run wave)          ^|
 echo ^| [6] Fix Desktop Path Error (OutDated)                                    ^|
 echo ^| [7] (Disabled) Defender Tweaks (not needed)                              ^|
@@ -130,7 +130,7 @@ set /p "MAINCHOICE=Choose option: "
 if /I "%MAINCHOICE%"=="1" goto install_wave
 if /I "%MAINCHOICE%"=="2" goto Fix_Module_Error
 if /I "%MAINCHOICE%"=="3" goto install_warp
-if /I "%MAINCHOICE%"=="4" goto manual_inject
+if /I "%MAINCHOICE%"=="4" goto DEFENDER_EXCLUSIONS
 if /I "%MAINCHOICE%"=="5" goto Auto_Fix_Runtimes
 if /I "%MAINCHOICE%"=="6" goto Auto_Fix_Error
 if /I "%MAINCHOICE%"=="7" goto remove_dcontrol
@@ -420,35 +420,38 @@ echo Restarting in 5 seconds...
 timeout /t 5 >nul
 shutdown /r /t 0
 
-:: ===================== WAVE MANUAL INJECT =====================
-:manual_inject
+:: ===================== DEFENDER_EXCLUSIONS =====================
+:DEFENDER_EXCLUSIONS
 cls
-echo +==========================================================================+
-echo ^|                       WAVE MANUAL INJECT                                 ^|
-echo +==========================================================================+
+title Wave Installer - Defender Whitelist
+
+NET SESSION >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    echo [!] Admin rights required.
+    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
+:: ---- Paths to whitelist ----
+set "WAVE_INSTALL=C:\WaveSetup"
+set "WAVE_DIR=%LOCALAPPDATA%\Wave"
+set "WAVE_WEBVIEW=%LOCALAPPDATA%\Wave.WebView2"
+
+echo [+] Adding Windows Defender exclusions:
+echo     %WAVE_INSTALL%
+echo     %WAVE_DIR%
+echo     %WAVE_WEBVIEW%
 echo.
-setlocal EnableDelayedExpansion
-set "WaveBin=%LOCALAPPDATA%\Wave\bin"
-for /f "delims=" %%D in ('dir "%WaveBin%\version-*" /b /ad /o:-d 2^>nul') do set "LatestVer=%%D" & goto gotVer
-:gotVer
-if not defined LatestVer (
-    echo [Error] No Wave version found.
-    pause
-    endlocal
-    goto mainmenu
-)
-set "CM=%WaveBin%\!LatestVer!\ClientManager.exe"
-if not exist "!CM!" (
-    echo [Error] ClientManager not found.
-    pause
-    endlocal
-    goto mainmenu
-)
-echo [*] Launching ClientManager...
-powershell -NoProfile -Command "Start-Process cmd -ArgumentList '/c start ""ClientManager"" /high """"!CM!""""' -Verb RunAs"
-echo [Success] Launched.
+
+:: ---- Apply exclusions (idempotent) ----
+powershell -NoProfile -Command ^
+"Add-MpPreference -ExclusionPath '%WAVE_INSTALL%' -ErrorAction SilentlyContinue; ^
+ Add-MpPreference -ExclusionPath '%WAVE_DIR%' -ErrorAction SilentlyContinue; ^
+ Add-MpPreference -ExclusionPath '%WAVE_WEBVIEW%' -ErrorAction SilentlyContinue"
+
+echo [+] Defender exclusions applied.
+echo.
 pause
-endlocal
 goto mainmenu
 
 :: ===================== DEFENDER INFO =====================
