@@ -1,58 +1,58 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-:: ===================== GITHUB AUTO-UPDATE =====================
+:: ===================== GITHUB AUTO-UPDATE (NO SPAM) =====================
 set "APP_NAME=RedFox Wave Installer"
 set "CURRENT_VER=2.0.2"
 
 set "GH_USER=Syr0nix"
 set "GH_REPO=FixWave"
 set "GH_BRANCH=main"
-
-:: EXACT filename of this script in the repo
-:: Example: FixWave.bat
 set "GH_BAT_PATH=FixWave.bat"
 
 set "RAW_BASE=https://raw.githubusercontent.com/%GH_USER%/%GH_REPO%/%GH_BRANCH%"
 set "VER_URL=%RAW_BASE%/version.txt"
 set "BAT_URL=%RAW_BASE%/%GH_BAT_PATH%"
 
-:: Allow --noupdate flag
+:: Skip update check if we were relaunched by updater
+echo %* | find /I "--updated" >nul && goto :after_update
 echo %* | find /I "--noupdate" >nul && goto :after_update
+
+:: Lock so it can't spawn multiple updater runs
+set "UPD_LOCK=%TEMP%\rf_fixwave_update.lock"
+if exist "%UPD_LOCK%" goto :after_update
+> "%UPD_LOCK%" echo locked
 
 for /f "usebackq delims=" %%V in (`
   powershell -NoProfile -Command ^
   "try { (Invoke-WebRequest -UseBasicParsing '%VER_URL%').Content.Trim() } catch { '' }"
 `) do set "LATEST_VER=%%V"
 
-if not defined LATEST_VER goto :after_update
-if "%LATEST_VER%"=="%CURRENT_VER%" goto :after_update
+if not defined LATEST_VER goto :after_update_cleanup
+if "%LATEST_VER%"=="%CURRENT_VER%" goto :after_update_cleanup
 
 echo.
 echo [*] %APP_NAME% update available: %CURRENT_VER% -> %LATEST_VER%
 echo [*] Downloading update from GitHub...
 
-set "TMP_NEW=%TEMP%\%~n0.update.bat"
+set "TMP_NEW=%TEMP%\FixWave.update.bat"
 powershell -NoProfile -Command ^
-  "Invoke-WebRequest -UseBasicParsing '%BAT_URL%' -OutFile '%TMP_NEW%'" || goto :after_update
+  "Invoke-WebRequest -UseBasicParsing '%BAT_URL%' -OutFile '%TMP_NEW%'" || goto :after_update_cleanup
 
-:: Self-replace safely
+:: Apply update hidden (no extra CMD windows)
 set "TARGET=%~f0"
-set "SWAP=%TEMP%\rf_update_swap.cmd"
-(
-  echo @echo off
-  echo ping 127.0.0.1 -n 2 ^>nul
-  echo copy /y "%TMP_NEW%" "%TARGET%" ^>nul
-  echo start "" "%TARGET%"
-  echo del "%TMP_NEW%" ^>nul
-  echo del "%%~f0" ^>nul
-) > "%SWAP%"
-
 echo [*] Applying update...
-start "" /min "%SWAP%"
+powershell -NoProfile -WindowStyle Hidden -Command ^
+  "Start-Sleep -Milliseconds 600; Copy-Item -Force '%TMP_NEW%' '%TARGET%'; Start-Process '%TARGET%' -ArgumentList '--updated'; Remove-Item -Force '%TMP_NEW%'" 
+
+del "%UPD_LOCK%" >nul 2>&1
 exit /b
 
+:after_update_cleanup
+del "%UPD_LOCK%" >nul 2>&1
+
 :after_update
+del "%UPD_LOCK%" >nul 2>&1
 :: ===================== END AUTO-UPDATE =====================
 
 title RedFox Wave Installer - v2.0 (Dec 2025)
@@ -69,7 +69,7 @@ if %ver% GEQ 10 (
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [ ! ] Requesting admin rights...
-    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
+      powershell -NoProfile -WindowStyle Hidden -Command "Start-Process '%~f0' -Verb RunAs"
     exit /b
 )
 
@@ -434,6 +434,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
