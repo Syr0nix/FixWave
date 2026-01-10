@@ -1,7 +1,5 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
-@echo off
-setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== GITHUB AUTO-UPDATE =====================
 set "APP_NAME=RedFox Wave Installer"
@@ -436,5 +434,6 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
