@@ -1,29 +1,9 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-:: ===================== FLAGS =====================
-set "ARG_UPDATED=0"
-set "ARG_NOUPDATE=0"
-set "ARG_ELEVATED=0"
-
-echo %* | find /I "--updated"  >nul && set "ARG_UPDATED=1"
-echo %* | find /I "--noupdate" >nul && set "ARG_NOUPDATE=1"
-echo %* | find /I "--elevated" >nul && set "ARG_ELEVATED=1"
-
-:: ===================== ELEVATE FIRST =====================
-if "%ARG_ELEVATED%"=="0" (
-    NET SESSION >nul 2>&1
-    if %errorlevel% NEQ 0 (
-        echo [ ! ] Requesting admin rights...
-        powershell -NoProfile -WindowStyle Hidden -Command ^
-          "Start-Process '%~f0' -Verb RunAs -ArgumentList '--elevated %*'"
-        exit /b
-    )
-)
-
-:: ===================== GITHUB AUTO-UPDATE =====================
+:: ---------- CONFIG ----------
 set "APP_NAME=RedFox Wave Installer"
-set "CURRENT_VER=2.0.5"
+set "CURRENT_VER=2.0.4"
 
 set "GH_USER=Syr0nix"
 set "GH_REPO=FixWave"
@@ -34,56 +14,102 @@ set "RAW_BASE=https://raw.githubusercontent.com/%GH_USER%/%GH_REPO%/%GH_BRANCH%"
 set "VER_URL=%RAW_BASE%/version.txt"
 set "BAT_URL=%RAW_BASE%/%GH_BAT_PATH%"
 
-:: Skip update if disabled, or if we just updated
+:: ---------- FLAGS ----------
+set "ARG_UPDATED=0"
+set "ARG_NOUPDATE=0"
+set "ARG_ELEVATED=0"
+echo %* | find /I "--updated"  >nul && set "ARG_UPDATED=1"
+echo %* | find /I "--noupdate" >nul && set "ARG_NOUPDATE=1"
+echo %* | find /I "--elevated" >nul && set "ARG_ELEVATED=1"
+
+:: ---------- ELEVATE FIRST ----------
+if "%ARG_ELEVATED%"=="0" (
+  NET SESSION >nul 2>&1
+  if %errorlevel% NEQ 0 (
+    echo [!] Requesting admin rights...
+    powershell -NoProfile -WindowStyle Hidden -Command ^
+      "Start-Process '%~f0' -Verb RunAs -ArgumentList '--elevated %*'"
+    exit /b
+  )
+)
+
+:: ---------- SKIP RULES ----------
 if "%ARG_NOUPDATE%"=="1" goto :after_update
 if "%ARG_UPDATED%"=="1"  goto :after_update
 
-:: Clear stale lock (prevents "stuck updater")
+:: ---------- CLEAR LOCK ----------
 del "%TEMP%\rf_fixwave_update.lock" >nul 2>&1
 
-:: Lock so it can't spawn multiple updater runs
-set "UPD_LOCK=%TEMP%\rf_fixwave_update.lock"
-if exist "%UPD_LOCK%" goto :after_update
-> "%UPD_LOCK%" echo locked
-
-:: Cache-bust GitHub raw (avoids stale responses)
+:: ---------- CACHE BUST ----------
 set /a "CB=%RANDOM%*32768+%RANDOM%"
 
-for /f "usebackq delims=" %%V in (`
-  powershell -NoProfile -Command ^
-  "try { (Invoke-WebRequest -UseBasicParsing ('%VER_URL%?cb=%CB%')).Content.Trim() } catch { '' }"
-`) do set "LATEST_VER=%%V"
-
-echo [dbg] CURRENT=%CURRENT_VER%
-echo [dbg] LATEST=%LATEST_VER%
+echo.
+echo [upd] CURRENT=%CURRENT_VER%
+echo [upd] VER_URL=%VER_URL%
+echo [upd] BAT_URL=%BAT_URL%
 echo.
 
-if not defined LATEST_VER goto :after_update_cleanup
-if "%LATEST_VER%"=="%CURRENT_VER%" goto :after_update_cleanup
+:: ---------- FETCH LATEST VERSION ----------
+set "LATEST_VER="
+for /f "usebackq delims=" %%V in (`
+  powershell -NoProfile -Command ^
+  "$u='%VER_URL%?cb=%CB%'; try { (Invoke-WebRequest -UseBasicParsing $u).Content.Trim() } catch { '' }"
+`) do set "LATEST_VER=%%V"
 
-echo [*] %APP_NAME% update available: %CURRENT_VER% -> %LATEST_VER%
-echo [*] Downloading update from GitHub...
+echo [upd] LATEST=%LATEST_VER%
+echo.
 
+if not defined LATEST_VER (
+  echo [upd][FAIL] Could not read version.txt (LATEST is blank). GitHub raw blocked or URL wrong.
+  echo [upd] Continuing without update...
+  goto :after_update
+)
+
+if "%LATEST_VER%"=="%CURRENT_VER%" (
+  echo [upd] Up to date. Continuing...
+  goto :after_update
+)
+
+echo [upd] Update needed: %CURRENT_VER% -> %LATEST_VER%
+
+:: ---------- DOWNLOAD NEW BAT ----------
 set "TMP_NEW=%TEMP%\FixWave.update.bat"
 powershell -NoProfile -Command ^
-  "try { Invoke-WebRequest -UseBasicParsing ('%BAT_URL%?cb=%CB%') -OutFile '%TMP_NEW%' ; exit 0 } catch { exit 1 }"
-if errorlevel 1 goto :after_update_cleanup
+  "$u='%BAT_URL%?cb=%CB%'; try { Invoke-WebRequest -UseBasicParsing $u -OutFile '%TMP_NEW%'; exit 0 } catch { exit 1 }"
 
-echo [*] Applying update...
+if errorlevel 1 (
+  echo [upd][FAIL] Download failed (FixWave.bat). Continuing without update...
+  goto :after_update
+)
 
-:: Overwrite + relaunch (keep admin + mark updated)
-powershell -NoProfile -WindowStyle Hidden -Command ^
-  "Start-Sleep -Milliseconds 600; Copy-Item -Force '%TMP_NEW%' '%~f0'; Start-Process '%~f0' -Verb RunAs -ArgumentList '--elevated --updated'; Remove-Item -Force '%TMP_NEW%'"
+if not exist "%TMP_NEW%" (
+  echo [upd][FAIL] Download said OK but file missing: %TMP_NEW%
+  goto :after_update
+)
 
-del "%UPD_LOCK%" >nul 2>&1
+echo [upd] Downloaded: %TMP_NEW%
+
+:: ---------- APPLY UPDATE (SAFE COPY) ----------
+:: Try to copy over self. If it fails, it usually means file locked or not writable.
+copy /y "%TMP_NEW%" "%~f0" >nul 2>&1
+if errorlevel 1 (
+  echo [upd][FAIL] Could not overwrite self (%~f0). File locked / OneDrive / permissions.
+  echo [upd] Workaround: move the BAT to C:\Temp\FixWave.bat and run again.
+  goto :after_update
+)
+
+del "%TMP_NEW%" >nul 2>&1
+
+echo [upd] Applied update. Relaunching...
+start "" "%~f0" --elevated --updated
 exit /b
 
-:after_update_cleanup
-del "%UPD_LOCK%" >nul 2>&1
-
 :after_update
-del "%UPD_LOCK%" >nul 2>&1
-:: ===================== END AUTO-UPDATE =====================
+echo.
+echo [upd] Done. Launching app...
+echo.
+:: ---- YOUR EXISTING SCRIPT CONTINUES BELOW ----
+
 
 title RedFox Wave Installer - v2.0 (Dec 2025)
 color 0B
@@ -464,6 +490,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
