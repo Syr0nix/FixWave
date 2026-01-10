@@ -47,8 +47,6 @@ del "%DESKTOP%\%LATEST_VER%" >nul 2>&1
 del "%DESKTOP%\%CURRENT_VER%" >nul 2>&1
 del "%DESKTOP%\version.txt" >nul 2>&1
 
-
-
 echo [UPDATE] Update applied. Relaunching...
 start "" "%~f0" --updated
 exit /b
@@ -435,6 +433,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
