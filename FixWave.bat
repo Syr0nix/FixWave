@@ -42,6 +42,10 @@ if not exist "%NEWFILE%" (
 copy /y "%NEWFILE%" "%~f0" >nul 2>&1
 del "%NEWFILE%" >nul 2>&1
 
+:: Cleanup stray version files
+del "%DESKTOP%\version.txt" "%DESKTOP%\2.*" >nul 2>&1
+
+
 echo [UPDATE] Update applied. Relaunching...
 start "" "%~f0" --updated
 exit /b
@@ -428,6 +432,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
