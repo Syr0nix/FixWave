@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.0.6"
+set "CURRENT_VER=2.0.7"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -222,13 +222,52 @@ set "MODULE_URL=https://github.com/Syr0nix/FixWave/raw/main/Wave%%20Module.zip"
 set "ZIP_NAME=Wave_Module.zip"
 set "DEST_DIR=%LOCALAPPDATA%"
 
-if not exist "%DEST_DIR%" (
-    echo [ERROR] Could not resolve LOCALAPPDATA.
+set "WAVE_DIR=%DEST_DIR%\Wave"
+set "WV2_DIR=%DEST_DIR%\Wave.WebView2"
+
+echo [*] Target folder: "%DEST_DIR%"
+echo.
+
+:: ===================== KILL WAVE PROCESSES =====================
+echo [*] Stopping Wave processes...
+
+taskkill /f /im Wave.exe >nul 2>&1
+taskkill /f /im msedgewebview2.exe >nul 2>&1
+taskkill /f /im msedge.exe >nul 2>&1
+
+timeout /t 2 >nul
+
+:: ===================== CLEAN OLD FILES =====================
+echo [*] Removing old Wave folders...
+
+if exist "%WAVE_DIR%" (
+    echo     - Deleting "%WAVE_DIR%"
+    rmdir /s /q "%WAVE_DIR%"
+)
+
+if exist "%WV2_DIR%" (
+    echo     - Deleting "%WV2_DIR%"
+    rmdir /s /q "%WV2_DIR%"
+)
+
+:: ===================== VERIFY DELETE =====================
+if exist "%WAVE_DIR%" (
+    echo [ERROR] Failed to delete "%WAVE_DIR%"
     pause
     goto mainmenu
 )
 
-echo [*] Downloading module to: "%DEST_DIR%"
+if exist "%WV2_DIR%" (
+    echo [ERROR] Failed to delete "%WV2_DIR%"
+    pause
+    goto mainmenu
+)
+
+echo [*] Cleanup complete.
+echo.
+
+:: ===================== DOWNLOAD MODULE =====================
+echo [*] Downloading module...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "Invoke-WebRequest -Uri '%MODULE_URL%' -OutFile '%DEST_DIR%\%ZIP_NAME%'"
 
@@ -238,20 +277,57 @@ if not exist "%DEST_DIR%\%ZIP_NAME%" (
     goto mainmenu
 )
 
-echo [*] Extracting module into: "%DEST_DIR%"
+:: ===================== EXTRACT MODULE =====================
+echo [*] Extracting module...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "Expand-Archive -Force '%DEST_DIR%\%ZIP_NAME%' '%DEST_DIR%'"
 
-echo [*] Cleaning up zip...
+:: ===================== CLEAN ZIP =====================
 del "%DEST_DIR%\%ZIP_NAME%" >nul 2>&1
 
 echo.
-echo [*] Module installed to: "%DEST_DIR%"
-echo [*] Launching Wave.exe...
-powershell -NoProfile -Command "Start-Process -FilePath \"%InstallerPath%\" -Verb RunAs"
-echo [Success] Wave launched!
+echo [*] Wave module fixed successfully.
+echo [*] Launching Wave...
+
+set "WAVE_EXE="
+
+:: ===================== DESKTOP =====================
+if exist "%USERPROFILE%\Desktop\wave.lnk" (
+    echo     - Found Desktop shortcut
+    start "" "%USERPROFILE%\Desktop\wave.lnk"
+    goto :LaunchDone
+)
+
+if exist "%USERPROFILE%\Desktop\wave.exe" (
+    echo     - Found Desktop exe
+    start "" "%USERPROFILE%\Desktop\wave.exe"
+    goto :LaunchDone
+)
+
+:: ===================== DOWNLOADS =====================
+if exist "%USERPROFILE%\Downloads\wave.exe" (
+    echo     - Found Downloads exe
+    start "" "%USERPROFILE%\Downloads\wave.exe"
+    goto :LaunchDone
+)
+
+:: ===================== WAVESETUP =====================
+if exist "%USERPROFILE%\WaveSetup\Wave.exe" (
+    echo     - Found WaveSetup exe
+    start "" "%USERPROFILE%\WaveSetup\Wave.exe"
+    goto :LaunchDone
+)
+
+echo [WARN] Wave.exe not found in expected locations.
+echo        Please launch Wave manually.
+timeout /t 3 >nul
+goto mainmenu
+
+:LaunchDone
+echo [*] Wave launched successfully.
 timeout /t 2 >nul
 goto mainmenu
+
 
 :: ===================== INSTALL CLOUDFLARE WARP =====================
 :install_warp
@@ -435,21 +511,3 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
