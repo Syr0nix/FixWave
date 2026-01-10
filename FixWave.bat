@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ---------- CONFIG ----------
 set "APP_NAME=RedFox Wave Installer"
-set "CURRENT_VER=2.0.4"
+set "CURRENT_VER=2.0.5"
 
 set "GH_USER=Syr0nix"
 set "GH_REPO=FixWave"
@@ -490,6 +490,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
