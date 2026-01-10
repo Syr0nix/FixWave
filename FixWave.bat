@@ -1,9 +1,9 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-:: ===================== GITHUB AUTO-UPDATE (BULLETPROOF) =====================
+:: ===================== GITHUB AUTO-UPDATE ===========================
 set "APP_NAME=RedFox Wave Installer"
-set "CURRENT_VER=2.0.3"
+set "CURRENT_VER=2.0.4"
 
 set "GH_USER=Syr0nix"
 set "GH_REPO=FixWave"
@@ -126,7 +126,7 @@ echo +==========================================================================
 echo ^| [1] Install Wave                                                         ^|
 echo ^| [2] Install Wave (VPS mode only works with some VPS)                     ^|
 echo ^| [3] Install Cloudflare WARP (VPN/ISP Bypass)                             ^|
-echo ^| [4] Wave Manual Inject (OutDated)                                        ^|
+echo ^| [4] Wave Manual Inject (test)                                        ^|
 echo ^| [5] Auto Fix Dependencies (Reinstalls files needed to run wave)          ^|
 echo ^| [6] Fix Desktop Path Error (OutDated)                                    ^|
 echo ^| [7] (Disabled) Defender Tweaks (not needed)                              ^|
@@ -442,6 +442,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
