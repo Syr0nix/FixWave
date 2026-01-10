@@ -1,41 +1,53 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-:: ===================== SIMPLE GITHUB AUTO UPDATE =====================
-set "CURRENT_VER=2.0.5"
+:: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
+
+set "CURRENT_VER=2.0.4"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
 
+:: Get Desktop path (works even with OneDrive)
+for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"') do set "DESKTOP=%%D"
+
+set "NEWFILE=%DESKTOP%\FixWave.new.bat"
+
 :: Skip if relaunched after update
 echo %* | find /I "--updated" >nul && goto :after_update
 
-:: Get latest version
+:: Read latest version
+set "LATEST_VER="
 for /f "usebackq delims=" %%V in (`
   powershell -NoProfile -Command ^
-  "(Invoke-WebRequest -UseBasicParsing '%RAW_VER%').Content.Trim()"
+  "try { (Invoke-WebRequest -UseBasicParsing '%RAW_VER%').Content.Trim() } catch { '' }"
 `) do set "LATEST_VER=%%V"
 
 if not defined LATEST_VER goto :after_update
 if "%LATEST_VER%"=="%CURRENT_VER%" goto :after_update
 
 echo [UPDATE] %CURRENT_VER% -> %LATEST_VER%
-echo [UPDATE] Downloading new version...
+echo [UPDATE] Downloading new version to Desktop...
 
-set "TMP=%TEMP%\FixWave.new.bat"
 powershell -NoProfile -Command ^
-  "Invoke-WebRequest -UseBasicParsing '%RAW_BAT%' -OutFile '%TMP%'"
+  "Invoke-WebRequest -UseBasicParsing '%RAW_BAT%' -OutFile '%NEWFILE%'"
 
-:: Replace self
-copy /y "%TMP%" "%~f0" >nul
-del "%TMP%" >nul
+if not exist "%NEWFILE%" (
+    echo [UPDATE][FAIL] Download blocked
+    pause
+    goto :after_update
+)
 
-echo [UPDATE] Updated successfully. Relaunching...
+:: Replace current file
+copy /y "%NEWFILE%" "%~f0" >nul 2>&1
+del "%NEWFILE%" >nul 2>&1
+
+echo [UPDATE] Update applied. Relaunching...
 start "" "%~f0" --updated
 exit /b
 
 :after_update
-:: ===================== END AUTO UPDATE =====================
+:: ===================== END AUTO-UPDATE =====================
 
 title RedFox Wave Installer - v2.0 (Dec 2025)
 color 0B
@@ -416,6 +428,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
