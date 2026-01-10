@@ -115,7 +115,7 @@ echo +==========================================================================
 echo ^|                    REDFOX WAVE INSTALLER v2.0                            ^|
 echo ^|                       (December 2025 Update)                             ^|
 echo +==========================================================================+
-echo ^| [1] Install Wave 2                                                         ^|
+echo ^| [1] Install Wave                                                         ^|
 echo ^| [2] Install Wave (VPS mode only works with some VPS)                     ^|
 echo ^| [3] Install Cloudflare WARP (VPN/ISP Bypass)                             ^|
 echo ^| [4] Wave Manual Inject (OutDated)                                        ^|
@@ -434,6 +434,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
