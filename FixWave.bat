@@ -1,7 +1,7 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
-:: ===================== GITHUB AUTO-UPDATE (NO SPAM) =====================
+:: ===================== GITHUB AUTO-UPDATE (BULLETPROOF) =====================
 set "APP_NAME=RedFox Wave Installer"
 set "CURRENT_VER=2.0.3"
 
@@ -14,7 +14,7 @@ set "RAW_BASE=https://raw.githubusercontent.com/%GH_USER%/%GH_REPO%/%GH_BRANCH%"
 set "VER_URL=%RAW_BASE%/version.txt"
 set "BAT_URL=%RAW_BASE%/%GH_BAT_PATH%"
 
-:: Skip update check if we were relaunched by updater
+:: Skip update check if we were relaunched by updater (or user disables)
 echo %* | find /I "--updated" >nul && goto :after_update
 echo %* | find /I "--noupdate" >nul && goto :after_update
 
@@ -23,21 +23,29 @@ set "UPD_LOCK=%TEMP%\rf_fixwave_update.lock"
 if exist "%UPD_LOCK%" goto :after_update
 > "%UPD_LOCK%" echo locked
 
+:: Cache-bust GitHub raw (avoids stale responses)
+set /a "CB=%RANDOM%*32768+%RANDOM%"
+
 for /f "usebackq delims=" %%V in (`
   powershell -NoProfile -Command ^
-  "try { (Invoke-WebRequest -UseBasicParsing '%VER_URL%').Content.Trim() } catch { '' }"
+  "try { (Invoke-WebRequest -UseBasicParsing ('%VER_URL%?cb=%CB%')).Content.Trim() } catch { '' }"
 `) do set "LATEST_VER=%%V"
+
+:: DEBUG (remove later if you want)
+echo [dbg] CURRENT=%CURRENT_VER%
+echo [dbg] LATEST=%LATEST_VER%
+echo.
 
 if not defined LATEST_VER goto :after_update_cleanup
 if "%LATEST_VER%"=="%CURRENT_VER%" goto :after_update_cleanup
 
-echo.
 echo [*] %APP_NAME% update available: %CURRENT_VER% -> %LATEST_VER%
 echo [*] Downloading update from GitHub...
 
 set "TMP_NEW=%TEMP%\FixWave.update.bat"
 powershell -NoProfile -Command ^
-  "Invoke-WebRequest -UseBasicParsing '%BAT_URL%' -OutFile '%TMP_NEW%'" || goto :after_update_cleanup
+  "try { Invoke-WebRequest -UseBasicParsing ('%BAT_URL%?cb=%CB%') -OutFile '%TMP_NEW%' ; exit 0 } catch { exit 1 }"
+if errorlevel 1 goto :after_update_cleanup
 
 :: Apply update hidden (no extra CMD windows)
 set "TARGET=%~f0"
@@ -434,6 +442,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
