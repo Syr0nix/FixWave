@@ -5,7 +5,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== GITHUB AUTO-UPDATE =====================
 set "APP_NAME=RedFox Wave Installer"
-set "CURRENT_VER=2.0.1"
+set "CURRENT_VER=2.0.2"
 
 set "GH_USER=Syr0nix"
 set "GH_REPO=FixWave"
@@ -436,4 +436,5 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
