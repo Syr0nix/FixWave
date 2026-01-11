@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.2.2"
+set "CURRENT_VER=2.2.3"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -223,6 +223,33 @@ goto boot_menu
 
 :Fix_Module_Error
 cls
+NET SESSION >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    echo [!] Admin rights required.
+    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
+:: ---- Paths to whitelist ----
+set "WAVE_INSTALL=C:\WaveSetup"
+set "WAVE_DIR=%LOCALAPPDATA%\Wave"
+set "WAVE_WEBVIEW=%LOCALAPPDATA%\Wave.WebView2"
+
+echo [+] Adding Windows Defender exclusions:
+echo     %WAVE_INSTALL%
+echo     %WAVE_DIR%
+echo     %WAVE_WEBVIEW%
+echo.
+
+:: ---- Apply exclusions (idempotent) ----
+powershell -NoProfile -Command ^
+"Add-MpPreference -ExclusionPath '%WAVE_INSTALL%' -ErrorAction SilentlyContinue; ^
+ Add-MpPreference -ExclusionPath '%WAVE_DIR%' -ErrorAction SilentlyContinue; ^
+ Add-MpPreference -ExclusionPath '%WAVE_WEBVIEW%' -ErrorAction SilentlyContinue"
+
+echo [+] Defender exclusions applied.
+echo.
+
 echo [*] Fixing Wave Module...
 echo.
 
@@ -520,8 +547,6 @@ exit /b
 :: ===================== DEFENDER_EXCLUSIONS =====================
 :DEFENDER_EXCLUSIONS
 cls
-title Wave Installer - Defender Whitelist
-
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [!] Admin rights required.
@@ -644,4 +669,3 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
-
