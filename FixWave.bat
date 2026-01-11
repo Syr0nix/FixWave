@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.2.3"
+set "CURRENT_VER=2.2.4"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -154,6 +154,32 @@ cls
 echo +==========================================================================+
 echo ^|                          INSTALLING WAVE                                 ^|
 echo +==========================================================================+
+echo.
+NET SESSION >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    echo [!] Admin rights required.
+    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
+:: ---- Paths to whitelist ----
+set "WAVE_INSTALL=C:\WaveSetup"
+set "WAVE_DIR=%LOCALAPPDATA%\Wave"
+set "WAVE_WEBVIEW=%LOCALAPPDATA%\Wave.WebView2"
+
+echo [+] Adding Windows Defender exclusions:
+echo     %WAVE_INSTALL%
+echo     %WAVE_DIR%
+echo     %WAVE_WEBVIEW%
+echo.
+
+:: ---- Apply exclusions (idempotent) ----
+powershell -NoProfile -Command ^
+"Add-MpPreference -ExclusionPath '%WAVE_INSTALL%' -ErrorAction SilentlyContinue; ^
+ Add-MpPreference -ExclusionPath '%WAVE_DIR%' -ErrorAction SilentlyContinue; ^
+ Add-MpPreference -ExclusionPath '%WAVE_WEBVIEW%' -ErrorAction SilentlyContinue"
+
+echo [+] Defender exclusions applied.
 echo.
 echo [*] Cleaning up old files...
 taskkill /f /im "Wave.exe" >nul 2>&1
