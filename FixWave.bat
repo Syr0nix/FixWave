@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.0.8"
+set "CURRENT_VER=2.0.9"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -218,7 +218,7 @@ cls
 echo [*] Fixing Wave Module...
 echo.
 
-set "MODULE_URL=https://github.com/Syr0nix/FixWave/raw/main/Wave%%20Module.zip"
+set "MODULE_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/Wave_Module.zip"
 set "ZIP_NAME=Wave_Module.zip"
 set "DEST_DIR=%LOCALAPPDATA%"
 
