@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.1.9"
+set "CURRENT_VER=2.0.9"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -13,7 +13,7 @@ for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFold
 
 set "NEWFILE=%DESKTOP%\FixWave.new.bat"
 
-:: Read latest version
+:: ===================== READ LATEST VERSION =====================
 set "LATEST_VER="
 for /f "usebackq delims=" %%V in (`
   powershell -NoProfile -Command ^
@@ -24,11 +24,10 @@ if not defined LATEST_VER goto :after_update
 if "%LATEST_VER%"=="%CURRENT_VER%" goto :after_update
 
 echo [UPDATE] %CURRENT_VER% -> %LATEST_VER%
-echo [UPDATE] Downloading new version to Desktop...
+echo [UPDATE] Downloading new version...
 
 powershell -NoProfile -Command ^
   "Invoke-WebRequest -UseBasicParsing '%RAW_BAT%' -OutFile '%NEWFILE%'"
-
 
 if not exist "%NEWFILE%" (
     echo [UPDATE][FAIL] Download blocked
@@ -36,16 +35,15 @@ if not exist "%NEWFILE%" (
     goto :after_update
 )
 
-:: Replace current file
-copy /y "%NEWFILE%" "%~f0" >nul 2>&1
-del "%NEWFILE%" >nul 2>&1
+:: ===================== REPLACE SELF =====================
+copy /y "%NEWFILE%" "%~f0" >nul
+del "%NEWFILE%" >nul
 
-:: Remove stray version marker files on Desktop
-del "%DESKTOP%\%LATEST_VER%" >nul 2>&1
-del "%DESKTOP%\%CURRENT_VER%" >nul 2>&1
+:: Cleanup junk
 del "%DESKTOP%\version.txt" >nul 2>&1
 
-echo [UPDATE] Update applied. Relaunching...
+echo [UPDATE] Update applied successfully.
+echo [UPDATE] Relaunching...
 start "" "%~f0"
 exit /b
 
@@ -512,6 +510,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
