@@ -415,7 +415,6 @@ goto mainmenu
 :: ===================== AUTO_FIX_HWID (REBOOT ONLY IF NEEDED) =====================
 :Auto_Fix_HWID
 cls
-title Auto Fix HWID - WMI Repair (Smart Reboot)
 
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
@@ -555,7 +554,6 @@ goto mainmenu
 :: ===================== TIME_CLOCK_SYNC + FLUSH_DNS =====================
 :TIME_DNS_FIX
 cls
-title Time Sync + DNS Flush Fix
 color 0B
 
 :: ---- Admin check ----
@@ -646,10 +644,3 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
-
-
-
-
-
-
-
