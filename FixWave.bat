@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.2.0"
+set "CURRENT_VER=2.2.1"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -127,8 +127,8 @@ echo ^| [2] Fix Module Error                                                    
 echo ^| [3] Install Cloudflare WARP (VPN/ISP Bypass)                             ^|
 echo ^| [4] Whitelist Wave to Anti-Virus (Defender)                              ^|
 echo ^| [5] Auto Fix Dependencies (Reinstalls files needed to run wave)          ^|
-echo ^| [6] Fix Desktop Path Error (OutDated)                                    ^|
-echo ^| [7] (Disabled) Defender Tweaks (not needed)                              ^|
+echo ^| [6] Fix Failed to Generate HWID - Invalid Class                          ^|
+echo ^| [7] Fix Invalid License / Expired License Error                          ^|
 echo ^| [8] Install Roblox Bootstrapper                                          ^|
 echo ^| [X] Exit                                                                 ^|
 echo +==========================================================================+
@@ -140,8 +140,8 @@ if /I "%MAINCHOICE%"=="2" goto Fix_Module_Error
 if /I "%MAINCHOICE%"=="3" goto install_warp
 if /I "%MAINCHOICE%"=="4" goto DEFENDER_EXCLUSIONS
 if /I "%MAINCHOICE%"=="5" goto Auto_Fix_Runtimes
-if /I "%MAINCHOICE%"=="6" goto Auto_Fix_Error
-if /I "%MAINCHOICE%"=="7" goto remove_dcontrol
+if /I "%MAINCHOICE%"=="6" goto Auto_Fix_HWID
+if /I "%MAINCHOICE%"=="7" goto TIME_DNS_FIX
 if /I "%MAINCHOICE%"=="8" goto boot_menu
 if /I "%MAINCHOICE%"=="X" exit /b
 echo Invalid choice. Try again.
@@ -412,21 +412,111 @@ echo [Success] Repair complete.
 pause
 goto mainmenu
 
-:: ===================== AUTO FIX DESKTOP ERROR =====================
-:Auto_Fix_Error
+:: ===================== AUTO_FIX_HWID (REBOOT ONLY IF NEEDED) =====================
+:Auto_Fix_HWID
 cls
-echo +==========================================================================+
-echo ^|                     FIXING DESKTOP PATH ERROR                            ^|
-echo +==========================================================================+
+title Auto Fix HWID - WMI Repair (Smart Reboot)
+
+NET SESSION >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    echo [!] Admin rights required. Relaunching...
+    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
+set "NEED_REBOOT=0"
+
+echo ==========================================
+echo   Auto Fix HWID - WMI Repair Tool
+echo ==========================================
 echo.
-for /f "tokens=2,*" %%A in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" /v Desktop 2^>nul') do set "DesktopPath=%%B"
-if /I "%DesktopPath%" NEQ "%%USERPROFILE%%\Desktop" (
-    reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders" /v Desktop /t REG_EXPAND_SZ /d %%USERPROFILE%%\Desktop /f >nul
-    echo [Success] Fixed.
-) else echo [OK] Already correct.
-echo Restarting in 5 seconds...
-timeout /t 5 >nul
-shutdown /r /t 0
+
+:: ---- Test UUID (modern, no WMIC) ----
+echo [1] Testing HWID via CIM...
+powershell -NoProfile -Command ^
+"$u=(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; ^
+ if($u){Write-Host '[OK] UUID:' $u; exit 0} else {exit 1}"
+
+IF %ERRORLEVEL% EQU 0 (
+    echo.
+    echo [*] HWID is already working. No fix needed.
+    pause
+    goto mainmenu
+)
+
+echo [!] HWID failed. Starting repair...
+echo.
+
+:: ---- Verify / salvage repository ----
+echo [2] Verifying WMI repository...
+winmgmt /verifyrepository | find /I "inconsistent" >nul
+IF %ERRORLEVEL% EQU 0 (
+    echo [!] Repository inconsistent. Salvaging...
+    winmgmt /salvagerepository
+    set "NEED_REBOOT=1"
+) ELSE (
+    echo [OK] Repository appears consistent (still may be missing classes).
+)
+
+:: ---- Re-test after salvage ----
+echo.
+echo [3] Re-testing HWID after salvage...
+powershell -NoProfile -Command ^
+"$u=(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; ^
+ if($u){Write-Host '[OK] UUID:' $u; exit 0} else {exit 1}"
+
+IF %ERRORLEVEL% EQU 0 (
+    echo.
+    echo [*] Fixed without rebuild.
+    echo.
+    if "%NEED_REBOOT%"=="1" (
+        echo [!] Recommended: reboot to fully reload WMI providers.
+        choice /C YN /N /M "Reboot now? (Y/N): "
+        if errorlevel 2 goto mainmenu
+        shutdown /r /t 5 /c "Auto Fix HWID - Rebooting to finalize WMI repair"
+        exit /b
+    ) else (
+        pause
+        goto mainmenu
+    )
+)
+
+:: ---- Rebuild WMI safely (only if still broken) ----
+echo.
+echo [4] Rebuilding WMI repository (safe rename)...
+set "NEED_REBOOT=1"
+
+net stop winmgmt /y >nul 2>&1
+if exist "%windir%\System32\wbem\Repository" (
+    ren "%windir%\System32\wbem\Repository" Repository.old_%RANDOM%
+)
+net start winmgmt >nul 2>&1
+
+:: ---- Repair system files ----
+echo.
+echo [5] Repairing system files (DISM + SFC)...
+DISM /Online /Cleanup-Image /RestoreHealth
+sfc /scannow
+
+:: ---- Re-register WMI ----
+echo.
+echo [6] Re-registering WMI components...
+cd /d %windir%\System32\wbem
+for %%i in (*.dll) do regsvr32 /s %%i
+for %%i in (*.mof *.mfl) do mofcomp %%i
+
+echo.
+echo ==========================================
+echo   Repair complete.
+echo   Reboot is REQUIRED to finish.
+echo ==========================================
+echo.
+
+choice /C YN /N /M "Reboot now? (Y/N): "
+if errorlevel 2 goto mainmenu
+
+shutdown /r /t 5 /c "Auto Fix HWID - Completing WMI repair"
+exit /b
 
 :: ===================== DEFENDER_EXCLUSIONS =====================
 :DEFENDER_EXCLUSIONS
@@ -462,19 +552,53 @@ echo.
 pause
 goto mainmenu
 
-:: ===================== DEFENDER INFO =====================
-:remove_dcontrol
+:: ===================== TIME_CLOCK_SYNC + FLUSH_DNS =====================
+:TIME_DNS_FIX
 cls
-echo +==========================================================================+
-echo ^|                        WINDOWS DEFENDER INFO                             ^|
-echo +==========================================================================+
+title Time Sync + DNS Flush Fix
+color 0B
+
+:: ---- Admin check ----
+NET SESSION >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    echo [!] Admin rights required. Relaunching...
+    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
+
+echo ==========================================
+echo   Time Clock Sync + DNS Flush
+echo ==========================================
 echo.
-echo [Disabled] No tweaks.
-echo Run in Admin CMD:
-echo sfc /scannow
-echo DISM /Online /Cleanup-Image /RestoreHealth
+
+:: ===================== TIME SYNC =====================
+echo [1/3] Enabling Windows Time service...
+sc config w32time start= auto >nul 2>&1
+net start w32time >nul 2>&1
+
+echo [2/3] Forcing time resync...
+w32tm /resync /force >nul 2>&1
+
+:: Fallback (some stripped OS builds need this)
+powershell -NoProfile -Command "Set-Date (Get-Date)" >nul 2>&1
+
+echo [+] Time synchronization complete.
+echo.
+
+:: ===================== DNS FLUSH =====================
+echo [3/3] Flushing DNS cache...
+ipconfig /flushdns
+
+echo.
+echo ==========================================
+echo   Fix complete.
+echo   If license errors persist, reboot.
+echo ==========================================
+echo.
+
 pause
 goto mainmenu
+
 
 :: ===================== BOOTSTRAPPER MENU =====================
 :boot_menu
