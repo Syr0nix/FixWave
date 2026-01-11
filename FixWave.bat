@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.1.9"
+set "CURRENT_VER=2.0.9"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -12,9 +12,6 @@ set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
 for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"') do set "DESKTOP=%%D"
 
 set "NEWFILE=%DESKTOP%\FixWave.new.bat"
-
-:: Skip if relaunched after update
-echo %* | find /I "--updated" >nul && goto :after_update
 
 :: Read latest version
 set "LATEST_VER="
@@ -32,6 +29,7 @@ echo [UPDATE] Downloading new version to Desktop...
 powershell -NoProfile -Command ^
   "Invoke-WebRequest -UseBasicParsing '%RAW_BAT%' -OutFile '%NEWFILE%'"
 
+
 if not exist "%NEWFILE%" (
     echo [UPDATE][FAIL] Download blocked
     pause
@@ -48,7 +46,7 @@ del "%DESKTOP%\%CURRENT_VER%" >nul 2>&1
 del "%DESKTOP%\version.txt" >nul 2>&1
 
 echo [UPDATE] Update applied. Relaunching...
-start "" "%~f0" --updated
+start "" "%~f0"
 exit /b
 
 :after_update
@@ -514,4 +512,5 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
