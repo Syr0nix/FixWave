@@ -39,6 +39,18 @@ if not exist "%NEWFILE%" (
 copy /y "%NEWFILE%" "%~f0" >nul
 del "%NEWFILE%" >nul
 
+:: ===================== CLEANUP VERSION MARKER FILES =====================
+del "%DESKTOP%\version.txt" >nul 2>&1
+
+:: Delete common marker names (current + latest)
+del "%DESKTOP%\%LATEST_VER%" >nul 2>&1
+del "%DESKTOP%\%CURRENT_VER%" >nul 2>&1
+
+:: Delete any leftover "1.2.3" style marker files on Desktop (no extension)
+for /f "delims=" %%F in ('dir /b "%DESKTOP%" ^| findstr /R "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$"') do (
+    del "%DESKTOP%\%%F" >nul 2>&1
+)
+
 :: Cleanup junk
 del "%DESKTOP%\version.txt" >nul 2>&1
 
@@ -510,6 +522,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
