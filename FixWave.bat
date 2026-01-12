@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.2.4"
+set "CURRENT_VER=2.2.5"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -119,8 +119,8 @@ goto :eof
 cls
 echo.
 echo +==========================================================================+
-echo ^|                    REDFOX WAVE INSTALLER v2.0                            ^|
-echo ^|                       (December 2025 Update)                             ^|
+echo ^|                     REDFOX WAVE INSTALLER v2.2.5                         ^|
+echo ^|                      (Install. Repair. Move on.)                         ^|
 echo +==========================================================================+
 echo ^| [1] Install Wave                                                         ^|
 echo ^| [2] Fix Module Error                                                     ^|
@@ -130,6 +130,7 @@ echo ^| [5] Auto Fix Dependencies (Reinstalls files needed to run wave)         
 echo ^| [6] Fix Failed to Generate HWID - Invalid Class                          ^|
 echo ^| [7] Fix Invalid License / Expired License Error                          ^|
 echo ^| [8] Install Roblox Bootstrapper                                          ^|
+echo +==========================================================================+
 echo ^| [X] Exit                                                                 ^|
 echo +==========================================================================+
 echo.
