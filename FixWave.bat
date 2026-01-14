@@ -9,7 +9,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.2.6"
+set "CURRENT_VER=2.2.7"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -140,7 +140,7 @@ goto :eof
 cls
 echo.
 echo +==========================================================================+
-echo ^|                     REDFOX WAVE INSTALLER v2.2.6                         ^|
+echo ^|                     REDFOX WAVE INSTALLER v2.2.7                         ^|
 echo ^|                      (Install. Repair. Move on.)                         ^|
 echo ^|             Copyright (c) 2026 RedFox All rights reserved.               ^|
 echo +==========================================================================+
@@ -487,6 +487,7 @@ if exist "%TargetDir%\node.msi" start /wait msiexec /i "%TargetDir%\node.msi" /q
 echo [Success] Repair complete.
 pause
 goto mainmenu
+
 
 
 
