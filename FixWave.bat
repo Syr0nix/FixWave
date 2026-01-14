@@ -1,6 +1,12 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
 
+::  Copyright (c) 2026 RedFox
+::  All rights reserved.
+::
+::  Unauthorized copying, modification, or redistribution
+::  of this script, in whole or in part, is strictly prohibited.
+
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
 set "CURRENT_VER=2.2.6"
@@ -136,6 +142,7 @@ echo.
 echo +==========================================================================+
 echo ^|                     REDFOX WAVE INSTALLER v2.2.6                         ^|
 echo ^|                      (Install. Repair. Move on.)                         ^|
+echo ^|              Copyright (c) 2026 RedFox All rights reserved.              ^|
 echo +==========================================================================+
 echo ^| [1] Install Wave                                                         ^|
 echo ^| [2] Fix Module Error                                                     ^|
