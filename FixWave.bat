@@ -134,7 +134,7 @@ goto :eof
 cls
 echo.
 echo +==========================================================================+
-echo ^|                     REDFOX WAVE INSTALLER v2.2.5                         ^|
+echo ^|                     REDFOX WAVE INSTALLER v2.2.6                         ^|
 echo ^|                      (Install. Repair. Move on.)                         ^|
 echo +==========================================================================+
 echo ^| [1] Install Wave                                                         ^|
@@ -480,3 +480,4 @@ if exist "%TargetDir%\node.msi" start /wait msiexec /i "%TargetDir%\node.msi" /q
 echo [Success] Repair complete.
 pause
 goto mainmenu
+
