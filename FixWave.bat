@@ -442,6 +442,142 @@ if exist "%WarpCliPath%" (
 pause
 goto mainmenu
 
+:: ===================== TIME_CLOCK_SYNC + FLUSH_DNS =====================
+:TIME_DNS_FIX
+cls
+color 0B
+
+echo ==========================================
+echo   Time Clock Sync + DNS Flush
+echo ==========================================
+echo.
+
+:: ===================== TIME SYNC =====================
+echo [1/3] Enabling Windows Time service...
+sc config w32time start= auto >nul 2>&1
+net start w32time >nul 2>&1
+
+echo [2/3] Forcing time resync...
+w32tm /resync /force >nul 2>&1
+
+:: Fallback (some stripped OS builds need this)
+powershell -NoProfile -Command "Set-Date (Get-Date)" >nul 2>&1
+
+echo [+] Time synchronization complete.
+echo.
+
+:: ===================== DNS FLUSH =====================
+echo [3/3] Flushing DNS cache...
+ipconfig /flushdns
+
+echo.
+echo ==========================================
+echo   Fix complete.
+echo   If license errors persist, reboot.
+echo ==========================================
+echo.
+
+pause
+goto mainmenu
+
+
+:: ===================== AUTO_FIX_HWID (REBOOT ONLY IF NEEDED) =====================
+:Auto_Fix_HWID
+cls
+set "NEED_REBOOT=0"
+
+echo ==========================================
+echo   Auto Fix HWID - WMI Repair Tool
+echo ==========================================
+echo.
+
+:: ---- Test UUID (modern, no WMIC) ----
+echo [1] Testing HWID via CIM...
+powershell -NoProfile -Command ^
+"$u=(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; ^
+ if($u){Write-Host '[OK] UUID:' $u; exit 0} else {exit 1}"
+
+IF %ERRORLEVEL% EQU 0 (
+    echo.
+    echo [*] HWID is already working. No fix needed.
+    pause
+    goto mainmenu
+)
+
+echo [!] HWID failed. Starting repair...
+echo.
+
+:: ---- Verify / salvage repository ----
+echo [2] Verifying WMI repository...
+winmgmt /verifyrepository | find /I "inconsistent" >nul
+IF %ERRORLEVEL% EQU 0 (
+    echo [!] Repository inconsistent. Salvaging...
+    winmgmt /salvagerepository
+    set "NEED_REBOOT=1"
+) ELSE (
+    echo [OK] Repository appears consistent (still may be missing classes).
+)
+
+:: ---- Re-test after salvage ----
+echo.
+echo [3] Re-testing HWID after salvage...
+powershell -NoProfile -Command ^
+"$u=(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; ^
+ if($u){Write-Host '[OK] UUID:' $u; exit 0} else {exit 1}"
+
+IF %ERRORLEVEL% EQU 0 (
+    echo.
+    echo [*] Fixed without rebuild.
+    echo.
+    if "%NEED_REBOOT%"=="1" (
+        echo [!] Recommended: reboot to fully reload WMI providers.
+        choice /C YN /N /M "Reboot now? (Y/N): "
+        if errorlevel 2 goto mainmenu
+        shutdown /r /t 5 /c "Auto Fix HWID - Rebooting to finalize WMI repair"
+        exit /b
+    ) else (
+        pause
+        goto mainmenu
+    )
+)
+
+:: ---- Rebuild WMI safely (only if still broken) ----
+echo.
+echo [4] Rebuilding WMI repository (safe rename)...
+set "NEED_REBOOT=1"
+
+net stop winmgmt /y >nul 2>&1
+if exist "%windir%\System32\wbem\Repository" (
+    ren "%windir%\System32\wbem\Repository" Repository.old_%RANDOM%
+)
+net start winmgmt >nul 2>&1
+
+:: ---- Repair system files ----
+echo.
+echo [5] Repairing system files (DISM + SFC)...
+DISM /Online /Cleanup-Image /RestoreHealth
+sfc /scannow
+
+:: ---- Re-register WMI ----
+echo.
+echo [6] Re-registering WMI components...
+cd /d %windir%\System32\wbem
+for %%i in (*.dll) do regsvr32 /s %%i
+for %%i in (*.mof *.mfl) do mofcomp %%i
+
+echo.
+echo ==========================================
+echo   Repair complete.
+echo   Reboot is REQUIRED to finish.
+echo ==========================================
+echo.
+
+choice /C YN /N /M "Reboot now? (Y/N): "
+if errorlevel 2 goto mainmenu
+
+shutdown /r /t 5 /c "Auto Fix HWID - Completing WMI repair"
+exit /b
+
 :: ===================== AUTO FIX RUNTIMES =====================
 :Auto_Fix_Runtimes
 cls
@@ -488,6 +624,50 @@ echo [Success] Repair complete.
 pause
 goto mainmenu
 
+:: ===================== BOOTSTRAPPER MENU =====================
+:boot_menu
+cls
+echo +==========================================================================+
+echo ^|                     ROBLOX BOOTSTRAPPER MENU                             ^|
+echo +==========================================================================+
+echo.
+echo [1] Bloxstrap v2.9.1 (official - recommended)
+echo [2] Fishstrap v2.9.1.2 (FPS unlocker)
+echo [3] MTX-Bloxstrap-Installer-2.9.0 (advanced)
+echo [B] Back to main menu
+echo.
+set /p "CHOICE=Select: "
+set "BOOT_NAME="
+set "BOOT_URL="
+if /I "%CHOICE%"=="1" (
+    set "BOOT_NAME=Bloxstrap v2.9.1"
+    set "BOOT_URL=https://github.com/bloxstraplabs/bloxstrap/releases/download/v2.9.1/Bloxstrap-v2.9.1.exe"
+)
+if /I "%CHOICE%"=="2" (
+    set "BOOT_NAME=Fishstrap v2.9.1.2"
+    set "BOOT_URL=https://github.com/fishstrap/fishstrap/releases/download/v2.9.1.2/Fishstrap-v2.9.1.2.exe"
+)
+if /I "%CHOICE%"=="3" (
+    set "BOOT_NAME=MTX-Bloxstrap-Installer-2.9.0"
+    set "BOOT_URL=https://github.com/Syr0nix/-MTX/releases/download/MTX/MTX-Bloxstrap-Installer-2.9.0.exe"
+)
+if /I "%CHOICE%"=="B" goto mainmenu
+if not defined BOOT_NAME goto boot_menu
 
+if not exist "%TargetDir%\Boot" mkdir "%TargetDir%\Boot"
+set "BOOT_EXE=%TargetDir%\Boot\%BOOT_NAME%.exe"
+echo.
+echo [*] Downloading %BOOT_NAME%...
+powershell -NoProfile -Command "Invoke-WebRequest -Uri '%BOOT_URL%' -OutFile '%BOOT_EXE%'"
+if exist "%BOOT_EXE%" (
+    echo [Success] Downloaded.
+    powershell -NoProfile -Command "Start-Process -FilePath '%BOOT_EXE%' -Verb RunAs"
+) else (
+    echo [Error] Failed.
+)
+echo.
+echo Saved in C:\WaveSetup\Boot
+pause
 
+goto mainmenu
 
