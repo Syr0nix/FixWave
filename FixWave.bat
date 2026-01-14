@@ -3,7 +3,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.2.5"
+set "CURRENT_VER=2.2.6"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -65,20 +65,35 @@ exit /b
 title RedFox Wave Installer - v2.0 (Dec 2025)
 color 0B
 
-:: ===================== ENABLE ANSI COLORS =====================
-for /f "tokens=2 delims=:." %%a in ('ver') do set "ver=%%a"
-if %ver% GEQ 10 (
-    reg query HKCU\Console 1>nul 2>nul || reg add HKCU\Console >nul
-    reg add HKCU\Console /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul
+:: ===================== ENABLE ANSI COLORS (SAFE) =====================
+set "WINMAJOR="
+for /f "usebackq delims=" %%V in (`powershell -NoProfile -Command ^
+  "$v=[Environment]::OSVersion.Version.Major; if($v){$v}"`
+) do set "WINMAJOR=%%V"
+
+if defined WINMAJOR (
+    for /f "delims=0123456789" %%Z in ("%WINMAJOR%") do set "WINMAJOR="
 )
 
-:: ===================== ELEVATE IF NEEDED =====================
+if defined WINMAJOR if %WINMAJOR% GEQ 10 (
+    reg query "HKCU\Console" >nul 2>&1 || reg add "HKCU\Console" >nul
+    reg add "HKCU\Console" /v VirtualTerminalLevel /t REG_DWORD /d 1 /f >nul 2>&1
+)
+
+
+:: ===================== ELEVATE IF NEEDED (SAFE) =====================
+set "SELF=%~f0"
+
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [ ! ] Requesting admin rights...
-      powershell -NoProfile -WindowStyle Hidden -Command "Start-Process '%~f0' -Verb RunAs"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+      "Start-Process -FilePath '%SELF%' -Verb RunAs -ArgumentList @('-elevated')"
     exit /b
 )
+
+if /I "%~1"=="-elevated" shift
+
 
 :: ===================== GLOBALS =====================
 set "TargetDir=C:\WaveSetup"
@@ -159,7 +174,7 @@ echo.
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [!] Admin rights required.
-    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList @('-elevated')"
     exit /b
 )
 
@@ -253,7 +268,7 @@ cls
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [!] Admin rights required.
-    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList @('-elevated')"
     exit /b
 )
 
@@ -464,235 +479,4 @@ powershell -NoProfile -Command "Invoke-WebRequest -Uri 'https://nodejs.org/dist/
 if exist "%TargetDir%\node.msi" start /wait msiexec /i "%TargetDir%\node.msi" /quiet /norestart
 echo [Success] Repair complete.
 pause
-goto mainmenu
-
-:: ===================== AUTO_FIX_HWID (REBOOT ONLY IF NEEDED) =====================
-:Auto_Fix_HWID
-cls
-
-NET SESSION >nul 2>&1
-IF %ERRORLEVEL% NEQ 0 (
-    echo [!] Admin rights required. Relaunching...
-    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
-    exit /b
-)
-
-set "NEED_REBOOT=0"
-
-echo ==========================================
-echo   Auto Fix HWID - WMI Repair Tool
-echo ==========================================
-echo.
-
-:: ---- Test UUID (modern, no WMIC) ----
-echo [1] Testing HWID via CIM...
-powershell -NoProfile -Command ^
-"$u=(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; ^
- if($u){Write-Host '[OK] UUID:' $u; exit 0} else {exit 1}"
-
-IF %ERRORLEVEL% EQU 0 (
-    echo.
-    echo [*] HWID is already working. No fix needed.
-    pause
-    goto mainmenu
-)
-
-echo [!] HWID failed. Starting repair...
-echo.
-
-:: ---- Verify / salvage repository ----
-echo [2] Verifying WMI repository...
-winmgmt /verifyrepository | find /I "inconsistent" >nul
-IF %ERRORLEVEL% EQU 0 (
-    echo [!] Repository inconsistent. Salvaging...
-    winmgmt /salvagerepository
-    set "NEED_REBOOT=1"
-) ELSE (
-    echo [OK] Repository appears consistent (still may be missing classes).
-)
-
-:: ---- Re-test after salvage ----
-echo.
-echo [3] Re-testing HWID after salvage...
-powershell -NoProfile -Command ^
-"$u=(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; ^
- if($u){Write-Host '[OK] UUID:' $u; exit 0} else {exit 1}"
-
-IF %ERRORLEVEL% EQU 0 (
-    echo.
-    echo [*] Fixed without rebuild.
-    echo.
-    if "%NEED_REBOOT%"=="1" (
-        echo [!] Recommended: reboot to fully reload WMI providers.
-        choice /C YN /N /M "Reboot now? (Y/N): "
-        if errorlevel 2 goto mainmenu
-        shutdown /r /t 5 /c "Auto Fix HWID - Rebooting to finalize WMI repair"
-        exit /b
-    ) else (
-        pause
-        goto mainmenu
-    )
-)
-
-:: ---- Rebuild WMI safely (only if still broken) ----
-echo.
-echo [4] Rebuilding WMI repository (safe rename)...
-set "NEED_REBOOT=1"
-
-net stop winmgmt /y >nul 2>&1
-if exist "%windir%\System32\wbem\Repository" (
-    ren "%windir%\System32\wbem\Repository" Repository.old_%RANDOM%
-)
-net start winmgmt >nul 2>&1
-
-:: ---- Repair system files ----
-echo.
-echo [5] Repairing system files (DISM + SFC)...
-DISM /Online /Cleanup-Image /RestoreHealth
-sfc /scannow
-
-:: ---- Re-register WMI ----
-echo.
-echo [6] Re-registering WMI components...
-cd /d %windir%\System32\wbem
-for %%i in (*.dll) do regsvr32 /s %%i
-for %%i in (*.mof *.mfl) do mofcomp %%i
-
-echo.
-echo ==========================================
-echo   Repair complete.
-echo   Reboot is REQUIRED to finish.
-echo ==========================================
-echo.
-
-choice /C YN /N /M "Reboot now? (Y/N): "
-if errorlevel 2 goto mainmenu
-
-shutdown /r /t 5 /c "Auto Fix HWID - Completing WMI repair"
-exit /b
-
-:: ===================== DEFENDER_EXCLUSIONS =====================
-:DEFENDER_EXCLUSIONS
-cls
-NET SESSION >nul 2>&1
-IF %ERRORLEVEL% NEQ 0 (
-    echo [!] Admin rights required.
-    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
-    exit /b
-)
-
-:: ---- Paths to whitelist ----
-set "WAVE_INSTALL=C:\WaveSetup"
-set "WAVE_DIR=%LOCALAPPDATA%\Wave"
-set "WAVE_WEBVIEW=%LOCALAPPDATA%\Wave.WebView2"
-
-echo [+] Adding Windows Defender exclusions:
-echo     %WAVE_INSTALL%
-echo     %WAVE_DIR%
-echo     %WAVE_WEBVIEW%
-echo.
-
-:: ---- Apply exclusions (idempotent) ----
-powershell -NoProfile -Command ^
-"Add-MpPreference -ExclusionPath '%WAVE_INSTALL%' -ErrorAction SilentlyContinue; ^
- Add-MpPreference -ExclusionPath '%WAVE_DIR%' -ErrorAction SilentlyContinue; ^
- Add-MpPreference -ExclusionPath '%WAVE_WEBVIEW%' -ErrorAction SilentlyContinue"
-
-echo [+] Defender exclusions applied.
-echo.
-pause
-goto mainmenu
-
-:: ===================== TIME_CLOCK_SYNC + FLUSH_DNS =====================
-:TIME_DNS_FIX
-cls
-color 0B
-
-:: ---- Admin check ----
-NET SESSION >nul 2>&1
-IF %ERRORLEVEL% NEQ 0 (
-    echo [!] Admin rights required. Relaunching...
-    powershell -NoProfile -Command "Start-Process '%~f0' -Verb RunAs"
-    exit /b
-)
-
-echo ==========================================
-echo   Time Clock Sync + DNS Flush
-echo ==========================================
-echo.
-
-:: ===================== TIME SYNC =====================
-echo [1/3] Enabling Windows Time service...
-sc config w32time start= auto >nul 2>&1
-net start w32time >nul 2>&1
-
-echo [2/3] Forcing time resync...
-w32tm /resync /force >nul 2>&1
-
-:: Fallback (some stripped OS builds need this)
-powershell -NoProfile -Command "Set-Date (Get-Date)" >nul 2>&1
-
-echo [+] Time synchronization complete.
-echo.
-
-:: ===================== DNS FLUSH =====================
-echo [3/3] Flushing DNS cache...
-ipconfig /flushdns
-
-echo.
-echo ==========================================
-echo   Fix complete.
-echo   If license errors persist, reboot.
-echo ==========================================
-echo.
-
-pause
-goto mainmenu
-
-
-:: ===================== BOOTSTRAPPER MENU =====================
-:boot_menu
-cls
-echo +==========================================================================+
-echo ^|                     ROBLOX BOOTSTRAPPER MENU                             ^|
-echo +==========================================================================+
-echo.
-echo [1] Bloxstrap v2.9.1 (official - recommended)
-echo [2] Fishstrap v2.9.1.2 (FPS unlocker)
-echo [3] MTX-Bloxstrap-Installer-2.9.0 (advanced)
-echo [B] Back to main menu
-echo.
-set /p "CHOICE=Select: "
-set "BOOT_NAME="
-set "BOOT_URL="
-if /I "%CHOICE%"=="1" (
-    set "BOOT_NAME=Bloxstrap v2.9.1"
-    set "BOOT_URL=https://github.com/bloxstraplabs/bloxstrap/releases/download/v2.9.1/Bloxstrap-v2.9.1.exe"
-)
-if /I "%CHOICE%"=="2" (
-    set "BOOT_NAME=Fishstrap v2.9.1.2"
-    set "BOOT_URL=https://github.com/fishstrap/fishstrap/releases/download/v2.9.1.2/Fishstrap-v2.9.1.2.exe"
-)
-if /I "%CHOICE%"=="3" (
-    set "BOOT_NAME=MTX-Bloxstrap-Installer-2.9.0"
-    set "BOOT_URL=https://github.com/Syr0nix/-MTX/releases/download/MTX/MTX-Bloxstrap-Installer-2.9.0.exe"
-)
-if /I "%CHOICE%"=="B" goto mainmenu
-if not defined BOOT_NAME goto boot_menu
-
-if not exist "%TargetDir%\Boot" mkdir "%TargetDir%\Boot"
-set "BOOT_EXE=%TargetDir%\Boot\%BOOT_NAME%.exe"
-echo.
-echo [*] Downloading %BOOT_NAME%...
-powershell -NoProfile -Command "Invoke-WebRequest -Uri '%BOOT_URL%' -OutFile '%BOOT_EXE%'"
-if exist "%BOOT_EXE%" (
-    echo [Success] Downloaded.
-    powershell -NoProfile -Command "Start-Process -FilePath '%BOOT_EXE%' -Verb RunAs"
-) else (
-    echo [Error] Failed.
-)
-echo.
-echo Saved in C:\WaveSetup\Boot
-pause
-
 goto mainmenu
