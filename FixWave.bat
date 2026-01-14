@@ -9,7 +9,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.2.7"
+set "CURRENT_VER=2.2.8"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -68,7 +68,7 @@ exit /b
 :after_update
 :: ===================== END AUTO-UPDATE =====================
 
-title RedFox Wave Installer - v2.0 (Dec 2025)
+title RedFox Wave Installer - v2.0
 color 0B
 
 :: ===================== ENABLE ANSI COLORS =====================
@@ -140,7 +140,7 @@ goto :eof
 cls
 echo.
 echo +==========================================================================+
-echo ^|                     REDFOX WAVE INSTALLER v2.2.7                         ^|
+echo ^|                         REDFOX WAVE INSTALLER                            ^|
 echo ^|                      (Install. Repair. Move on.)                         ^|
 echo ^|             Copyright (c) 2026 RedFox All rights reserved.               ^|
 echo +==========================================================================+
@@ -670,4 +670,5 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
