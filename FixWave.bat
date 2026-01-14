@@ -142,7 +142,7 @@ echo.
 echo +==========================================================================+
 echo ^|                     REDFOX WAVE INSTALLER v2.2.6                         ^|
 echo ^|                      (Install. Repair. Move on.)                         ^|
-echo ^|              Copyright (c) 2026 RedFox All rights reserved.              ^|
+echo ^|             Copyright (c) 2026 RedFox All rights reserved.               ^|
 echo +==========================================================================+
 echo ^| [1] Install Wave                                                         ^|
 echo ^| [2] Fix Module Error                                                     ^|
@@ -487,5 +487,6 @@ if exist "%TargetDir%\node.msi" start /wait msiexec /i "%TargetDir%\node.msi" /q
 echo [Success] Repair complete.
 pause
 goto mainmenu
+
 
 
