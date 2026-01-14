@@ -65,7 +65,7 @@ exit /b
 title RedFox Wave Installer - v2.0 (Dec 2025)
 color 0B
 
-:: ===================== ENABLE ANSI COLORS (SAFE) =====================
+:: ===================== ENABLE ANSI COLORS =====================
 set "WINMAJOR="
 for /f "usebackq delims=" %%V in (`powershell -NoProfile -Command ^
   "$v=[Environment]::OSVersion.Version.Major; if($v){$v}"`
@@ -81,7 +81,7 @@ if defined WINMAJOR if %WINMAJOR% GEQ 10 (
 )
 
 
-:: ===================== ELEVATE IF NEEDED (SAFE) =====================
+:: ===================== ELEVATE IF NEEDED =====================
 set "SELF=%~f0"
 
 NET SESSION >nul 2>&1
@@ -480,4 +480,5 @@ if exist "%TargetDir%\node.msi" start /wait msiexec /i "%TargetDir%\node.msi" /q
 echo [Success] Repair complete.
 pause
 goto mainmenu
+
 
