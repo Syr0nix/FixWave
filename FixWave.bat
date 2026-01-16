@@ -270,6 +270,45 @@ echo ^|                NEXT: CHOOSE A ROBLOX BOOTSTRAPPER                       
 echo +==========================================================================+
 goto boot_menu
 
+
+:DEFENDER_EXCLUSIONS
+cls
+:: Ensure variables exist no matter where we came from
+set "WAVE_INSTALL=C:\WaveSetup"
+set "WAVE_DIR=%LOCALAPPDATA%\Wave"
+set "WAVE_WEBVIEW=%LOCALAPPDATA%\Wave.WebView2"
+
+echo [+] Adding Windows Defender exclusions:
+echo     %WAVE_INSTALL%
+echo     %WAVE_DIR%
+echo     %WAVE_WEBVIEW%
+echo.
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"try { ^
+  Add-MpPreference -ExclusionPath '%WAVE_INSTALL%' -ErrorAction Stop; ^
+  Add-MpPreference -ExclusionPath '%WAVE_DIR%' -ErrorAction Stop; ^
+  Add-MpPreference -ExclusionPath '%WAVE_WEBVIEW%' -ErrorAction Stop; ^
+  Write-Host '[OK] Exclusions added.' ^
+} catch { ^
+  Write-Host '[FAIL]' $_.Exception.Message ^
+  exit 1 ^
+}"
+
+if %errorlevel% neq 0 (
+  echo.
+  echo [!] Defender exclusions failed.
+  echo     - If you are using a stripped Windows build, Defender cmdlets may be missing.
+  echo     - If Tamper Protection is on, exclusions may be blocked.
+  pause
+  goto mainmenu
+)
+
+echo.
+echo [+] All Defender exclusions applied!
+pause
+goto mainmenu
+
 :Fix_Module_Error
 cls
 NET SESSION >nul 2>&1
@@ -670,5 +709,3 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
-
-
