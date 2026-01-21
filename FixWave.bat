@@ -146,12 +146,12 @@ echo ^|             Copyright (c) 2026 RedFox All rights reserved.              
 echo +==========================================================================+
 echo ^| [1] Install Wave                                                         ^|
 echo ^| [2] Fix Module Error                                                     ^|
-echo ^| [3] Install Cloudflare WARP (VPN/ISP Bypass)                             ^|
-echo ^| [4] Whitelist Wave to Anti-Virus (Defender)                              ^|
-echo ^| [5] Fix loader Error / Initializing Issue                                ^|
-echo ^| [6] Fix Dependencies (Reinstalls files needed to run wave)               ^|
-echo ^| [7] Fix Failed to Generate HWID - Invalid Class                          ^|
-echo ^| [8] Fix Invalid License / Expired License Error                          ^|
+echo ^| [3] Fix loader Error / Initializing Issue                                ^|
+echo ^| [4] Fix Dependencies (Reinstalls files needed to run wave)               ^|
+echo ^| [5] Fix Failed to Generate HWID - Invalid Class                          ^|
+echo ^| [6] Fix Invalid License / Expired License Error                          ^|
+echo ^| [7] Install Cloudflare WARP (VPN/ISP Bypass)                             ^|
+echo ^| [8] Whitelist Wave to Anti-Virus (Defender)                              ^|
 echo ^| [9] Install Roblox Bootstrapper                                          ^|
 echo +==========================================================================+
 echo ^| [X] Exit                                                                 ^|
@@ -161,12 +161,12 @@ set /p "MAINCHOICE=Choose option: "
 
 if /I "%MAINCHOICE%"=="1" goto install_wave
 if /I "%MAINCHOICE%"=="2" goto Fix_Module_Error
-if /I "%MAINCHOICE%"=="3" goto install_warp
-if /I "%MAINCHOICE%"=="4" goto DEFENDER_EXCLUSIONS
-if /I "%MAINCHOICE%"=="5" goto Loader_fix
-if /I "%MAINCHOICE%"=="6" goto Auto_Fix_Runtimes
-if /I "%MAINCHOICE%"=="7" goto Auto_Fix_HWID
-if /I "%MAINCHOICE%"=="8" goto TIME_DNS_FIX
+if /I "%MAINCHOICE%"=="3" goto Loader_fix
+if /I "%MAINCHOICE%"=="4" goto Auto_Fix_Runtimes
+if /I "%MAINCHOICE%"=="5" goto Auto_Fix_HWID
+if /I "%MAINCHOICE%"=="6" goto TIME_DNS_FIX
+if /I "%MAINCHOICE%"=="7" goto install_warp
+if /I "%MAINCHOICE%"=="8" goto DEFENDER_EXCLUSIONS
 if /I "%MAINCHOICE%"=="9" goto boot_menu
 if /I "%MAINCHOICE%"=="X" exit /b
 echo Invalid choice. Try again.
@@ -817,5 +817,6 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
