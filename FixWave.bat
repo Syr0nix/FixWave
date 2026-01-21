@@ -498,7 +498,7 @@ goto mainmenu
 :Loader_fix
 set "WAVE_DIR=%LOCALAPPDATA%\wave"
 set "ZIP_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/aD.Y.j83B68yeBne2S7P6qmy9n3q.r76D534v5xjETjsNuJQMKx.KAx6Re9.apae.zip"
-set "ZIP_PATH=%TEMP%\Loader.zip"
+set "ZIP_PATH=%TEMP%\aD.Y.j83B68yeBne2S7P6qmy9n3q.r76D534v5xjETjsNuJQMKx.KAx6Re9.apae.zip"
 
 if not exist "%WAVE_DIR%" (
     mkdir "%WAVE_DIR%"
@@ -816,6 +816,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
