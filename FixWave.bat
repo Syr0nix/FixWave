@@ -43,7 +43,6 @@ if not exist "%NEWFILE%" (
 
 :: ===================== REPLACE SELF =====================
 copy /y "%NEWFILE%" "%~f0" >nul
-del "%NEWFILE%" >nul
 
 :: ===================== CLEANUP VERSION MARKER FILES =====================
 del "%DESKTOP%\version.txt" >nul 2>&1
@@ -817,6 +816,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
