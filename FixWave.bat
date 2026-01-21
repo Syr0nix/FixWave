@@ -862,20 +862,3 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
