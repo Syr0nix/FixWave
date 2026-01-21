@@ -17,7 +17,7 @@ set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
 :: Get Desktop path (works even with OneDrive)
 for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"') do set "DESKTOP=%%D"
 
-set "NEWFILE=%DESKTOP%\FixWave.new.bat"
+set "NEWFILE=%DESKTOP%\FixWave.bat"
 
 :: ===================== READ LATEST VERSION =====================
 set "LATEST_VER="
@@ -817,3 +817,4 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
