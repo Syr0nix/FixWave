@@ -148,10 +148,11 @@ echo ^| [1] Install Wave                                                        
 echo ^| [2] Fix Module Error                                                     ^|
 echo ^| [3] Install Cloudflare WARP (VPN/ISP Bypass)                             ^|
 echo ^| [4] Whitelist Wave to Anti-Virus (Defender)                              ^|
-echo ^| [5] Auto Fix Dependencies (Reinstalls files needed to run wave)          ^|
-echo ^| [6] Fix Failed to Generate HWID - Invalid Class                          ^|
-echo ^| [7] Fix Invalid License / Expired License Error                          ^|
-echo ^| [8] Install Roblox Bootstrapper                                          ^|
+echo ^| [5] Fix loader Error & Stuck On Initializing Issue                       ^|
+echo ^| [6] Auto Fix Dependencies (Reinstalls files needed to run wave)          ^|
+echo ^| [7] Fix Failed to Generate HWID - Invalid Class                          ^|
+echo ^| [8] Fix Invalid License / Expired License Error                          ^|
+echo ^| [9] Install Roblox Bootstrapper                                          ^|
 echo +==========================================================================+
 echo ^| [X] Exit                                                                 ^|
 echo +==========================================================================+
@@ -162,10 +163,11 @@ if /I "%MAINCHOICE%"=="1" goto install_wave
 if /I "%MAINCHOICE%"=="2" goto Fix_Module_Error
 if /I "%MAINCHOICE%"=="3" goto install_warp
 if /I "%MAINCHOICE%"=="4" goto DEFENDER_EXCLUSIONS
-if /I "%MAINCHOICE%"=="5" goto Auto_Fix_Runtimes
-if /I "%MAINCHOICE%"=="6" goto Auto_Fix_HWID
-if /I "%MAINCHOICE%"=="7" goto TIME_DNS_FIX
-if /I "%MAINCHOICE%"=="8" goto boot_menu
+if /I "%MAINCHOICE%"=="5" goto Loader_fix
+if /I "%MAINCHOICE%"=="6" goto Auto_Fix_Runtimes
+if /I "%MAINCHOICE%"=="7" goto Auto_Fix_HWID
+if /I "%MAINCHOICE%"=="8" goto TIME_DNS_FIX
+if /I "%MAINCHOICE%"=="9" goto boot_menu
 if /I "%MAINCHOICE%"=="X" exit /b
 echo Invalid choice. Try again.
 timeout /t 2 >nul
@@ -451,6 +453,60 @@ echo [*] Wave launched successfully.
 timeout /t 2 >nul
 goto mainmenu
 
+:Loader_fix
+@echo off
+setlocal
+
+set "WAVE_DIR=%LOCALAPPDATA%\wave"
+set "ZIP_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/Loader.zip"
+set "ZIP_PATH=%TEMP%\Loader.zip"
+
+:: Create folder if missing
+if not exist "%WAVE_DIR%" (
+    mkdir "%WAVE_DIR%"
+)
+
+:: Download ZIP
+echo Downloading Loader.zip...
+powershell -Command ^
+    "Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile '%ZIP_PATH%' -UseBasicParsing"
+
+:: Verify ZIP
+if not exist "%ZIP_PATH%" (
+    echo FAILED to download Loader.zip
+    pause
+    endlocal
+    goto mainmenu
+)
+
+:: Extract ZIP
+echo Extracting Loader.exe...
+powershell -Command ^
+    "Expand-Archive -Path '%ZIP_PATH%' -DestinationPath '%WAVE_DIR%' -Force"
+
+:: Cleanup
+del "%ZIP_PATH%" >nul 2>&1
+
+:: Verify install
+if exist "%WAVE_DIR%\Loader.exe" (
+    echo Loader.exe installed successfully.
+) else (
+    echo Extraction failed — Loader.exe not found.
+    pause
+    endlocal
+    goto mainmenu
+)
+
+:: Launch wave.exe
+if exist "%WAVE_DIR%\wave.exe" (
+    start "" "%WAVE_DIR%\wave.exe"
+) else (
+    echo wave.exe not found.
+    pause
+)
+
+endlocal
+goto mainmenu
 
 :: ===================== INSTALL CLOUDFLARE WARP =====================
 :install_warp
@@ -709,4 +765,3 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
-
