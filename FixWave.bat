@@ -9,7 +9,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.3.2"
+set "CURRENT_VER=2.0.2"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -17,7 +17,7 @@ set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
 :: Get Desktop path (works even with OneDrive)
 for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"') do set "DESKTOP=%%D"
 
-set "NEWFILE=%DESKTOP%\FixWave_v2.3.2.bat"
+set "NEWFILE=%DESKTOP%\FixWave.bat"
 
 :: ===================== READ LATEST VERSION =====================
 set "LATEST_VER="
