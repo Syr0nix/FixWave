@@ -149,7 +149,7 @@ echo ^| [2] Fix Module Error                                                    
 echo ^| [3] Install Cloudflare WARP (VPN/ISP Bypass)                             ^|
 echo ^| [4] Whitelist Wave to Anti-Virus (Defender)                              ^|
 echo ^| [5] Fix loader Error / Initializing Issue                                ^|
-echo ^| [6] Auto Fix Dependencies (Reinstalls files needed to run wave)          ^|
+echo ^| [6] Fix Dependencies (Reinstalls files needed to run wave)               ^|
 echo ^| [7] Fix Failed to Generate HWID - Invalid Class                          ^|
 echo ^| [8] Fix Invalid License / Expired License Error                          ^|
 echo ^| [9] Install Roblox Bootstrapper                                          ^|
@@ -817,4 +817,5 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
