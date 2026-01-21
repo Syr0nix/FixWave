@@ -17,98 +17,48 @@ set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
 :: Get Desktop path (works even with OneDrive)
 for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"') do set "DESKTOP=%%D"
 
+set "NEWFILE=%DESKTOP%\FixWave.bat"
+
 :: ===================== READ LATEST VERSION =====================
 set "LATEST_VER="
 for /f "usebackq delims=" %%V in (`
   powershell -NoProfile -Command ^
-  "$ErrorActionPreference='Stop'; ^
-   try { ^
-     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
-     (Invoke-WebRequest -Uri '%RAW_VER%' -UseBasicParsing).Content.Trim() ^
-   } catch { ^
-     '' ^
-   }"
+  "try { (Invoke-WebRequest -UseBasicParsing '%RAW_VER%').Content.Trim() } catch { '' }"
 `) do set "LATEST_VER=%%V"
 
-if not defined LATEST_VER (
-  echo [UPDATE] Version check failed (no response).
-  goto :after_update
-)
-
+if not defined LATEST_VER goto :after_update
 if "%LATEST_VER%"=="%CURRENT_VER%" goto :after_update
 
 echo [UPDATE] %CURRENT_VER% -> %LATEST_VER%
 echo [UPDATE] Downloading new version...
 
-:: ===================== DOWNLOAD TO TEMP (SAFE) =====================
-set "TMPFILE=%TEMP%\FixWave.update.bat"
-del "%TMPFILE%" >nul 2>&1
-
 powershell -NoProfile -Command ^
-  "$ErrorActionPreference='Stop'; ^
-   try { ^
-     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; ^
-     Invoke-WebRequest -Uri '%RAW_BAT%' -UseBasicParsing -OutFile '%TMPFILE%'; ^
-     exit 0 ^
-   } catch { ^
-     Write-Host '[UPDATE][FAIL] ' $_.Exception.Message; ^
-     exit 1 ^
-   }"
-set "PSERR=%ERRORLEVEL%"
+  "Invoke-WebRequest -UseBasicParsing '%RAW_BAT%' -OutFile '%NEWFILE%'"
 
-if not "%PSERR%"=="0" (
-  echo [UPDATE][FAIL] PowerShell download failed (errorlevel=%PSERR%).
-  echo [UPDATE] RAW_BAT: %RAW_BAT%
-  echo.
-  echo Tip: If you run this from an existing Command Prompt, you will see the full error.
-  pause
-  goto :after_update
-)
-
-if not exist "%TMPFILE%" (
-  echo [UPDATE][FAIL] Download did not create file: %TMPFILE%
-  pause
-  goto :after_update
-)
-
-for %%A in ("%TMPFILE%") do set "SIZE=%%~zA"
-if not defined SIZE set "SIZE=0"
-if %SIZE% LSS 200 (
-  echo [UPDATE][FAIL] Downloaded file looks invalid (size=%SIZE% bytes)
-  echo [UPDATE] Temp file: %TMPFILE%
-  echo.
-  echo Showing first 10 lines (if any):
-  echo ------------------------------
-  for /f "usebackq delims=" %%L in ("%TMPFILE%") do (
-    echo %%L
-    set /a _c+=1
-    if !_c! GEQ 10 goto :done_preview
-  )
-:done_preview
-  echo ------------------------------
-  pause
-  goto :after_update
+if not exist "%NEWFILE%" (
+    echo [UPDATE][FAIL] Download blocked
+    pause
+    goto :after_update
 )
 
 :: ===================== REPLACE SELF =====================
-copy /y "%TMPFILE%" "%~f0" >nul
-if errorlevel 1 (
-  echo [UPDATE][FAIL] Failed to overwrite self: %~f0
-  echo [UPDATE] (File may be locked / no permission.)
-  pause
-  goto :after_update
-)
-
-del "%TMPFILE%" >nul 2>&1
+copy /y "%NEWFILE%" "%~f0" >nul
+del "%NEWFILE%" >nul
 
 :: ===================== CLEANUP VERSION MARKER FILES =====================
 del "%DESKTOP%\version.txt" >nul 2>&1
+
+:: Delete common marker names (current + latest)
 del "%DESKTOP%\%LATEST_VER%" >nul 2>&1
 del "%DESKTOP%\%CURRENT_VER%" >nul 2>&1
 
+:: Delete any leftover "1.2.3" style marker files on Desktop (no extension)
 for /f "delims=" %%F in ('dir /b "%DESKTOP%" ^| findstr /R "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$"') do (
-  del "%DESKTOP%\%%F" >nul 2>&1
+    del "%DESKTOP%\%%F" >nul 2>&1
 )
+
+:: Cleanup junk
+del "%DESKTOP%\version.txt" >nul 2>&1
 
 echo [UPDATE] Update applied successfully.
 echo [UPDATE] Relaunching...
@@ -116,7 +66,7 @@ start "" "%~f0"
 exit /b
 
 :after_update
-:: ===================== END AUTO-UPDATE =====================
+:: ===================== END AUTO-UPDATE =======================
 
 title RedFox Wave Installer - v2.0
 color 0B
@@ -867,6 +817,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
