@@ -17,8 +17,6 @@ set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
 :: Get Desktop path (works even with OneDrive)
 for /f "delims=" %%D in ('powershell -NoProfile -Command "[Environment]::GetFolderPath('Desktop')"') do set "DESKTOP=%%D"
 
-set "NEWFILE=%DESKTOP%\FixWave.bat"
-
 :: ===================== READ LATEST VERSION =====================
 set "LATEST_VER="
 for /f "usebackq delims=" %%V in (`
@@ -32,18 +30,29 @@ if "%LATEST_VER%"=="%CURRENT_VER%" goto :after_update
 echo [UPDATE] %CURRENT_VER% -> %LATEST_VER%
 echo [UPDATE] Downloading new version...
 
-powershell -NoProfile -Command ^
-  "Invoke-WebRequest -UseBasicParsing '%RAW_BAT%' -OutFile '%NEWFILE%'"
+:: ===================== DOWNLOAD TO TEMP (SAFE) =====================
+set "TMPFILE=%TEMP%\FixWave.update.bat"
 
-if not exist "%NEWFILE%" (
+powershell -NoProfile -Command ^
+  "try { Invoke-WebRequest -UseBasicParsing '%RAW_BAT%' -OutFile '%TMPFILE%' } catch { exit 1 }"
+
+if not exist "%TMPFILE%" (
     echo [UPDATE][FAIL] Download blocked
     pause
     goto :after_update
 )
 
+:: Optional sanity check: ensure file isn't empty
+for %%A in ("%TMPFILE%") do if %%~zA LSS 20 (
+    echo [UPDATE][FAIL] Downloaded file looks invalid (too small)
+    del "%TMPFILE%" >nul 2>&1
+    pause
+    goto :after_update
+)
+
 :: ===================== REPLACE SELF =====================
-copy /y "%NEWFILE%" "%~f0" >nul
-del "%NEWFILE%" >nul
+copy /y "%TMPFILE%" "%~f0" >nul
+del "%TMPFILE%" >nul 2>&1
 
 :: ===================== CLEANUP VERSION MARKER FILES =====================
 del "%DESKTOP%\version.txt" >nul 2>&1
@@ -56,9 +65,6 @@ del "%DESKTOP%\%CURRENT_VER%" >nul 2>&1
 for /f "delims=" %%F in ('dir /b "%DESKTOP%" ^| findstr /R "^[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*$"') do (
     del "%DESKTOP%\%%F" >nul 2>&1
 )
-
-:: Cleanup junk
-del "%DESKTOP%\version.txt" >nul 2>&1
 
 echo [UPDATE] Update applied successfully.
 echo [UPDATE] Relaunching...
@@ -817,6 +823,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
