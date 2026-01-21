@@ -453,12 +453,11 @@ timeout /t 2 >nul
 goto mainmenu
 
 :Loader_fix
-:: ---- Admin check ----
+cls
 NET SESSION >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
     echo [!] Admin rights required.
-    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-      "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList @('-elevated')"
+    powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList @('-elevated')"
     exit /b
 )
 
@@ -491,66 +490,118 @@ taskkill /f /im msedgewebview2.exe >nul 2>&1
 taskkill /f /im msedge.exe >nul 2>&1
 timeout /t 2 >nul
 
-set "WAVE_DIR=%LOCALAPPDATA%\wave"
+:: ===================== DOWNLOAD LOADER ZIP =====================
+set "WAVE_LOADER_DIR=%LOCALAPPDATA%\wave"
 set "ZIP_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/aD.Y.j83B68yeBne2S7P6qmy9n3q.r76D534v5xjETjsNuJQMKx.KAx6Re9.apae.zip"
-set "ZIP_PATH=%TEMP%\aD.Y.j83B68yeBne2S7P6qmy9n3q.r76D534v5xjETjsNuJQMKx.KAx6Re9.apae.zip"
+set "ZIP_PATH=%TEMP%\Loader.zip"
 
-if not exist "%WAVE_DIR%" (
-    mkdir "%WAVE_DIR%"
-)
+if not exist "%WAVE_LOADER_DIR%" mkdir "%WAVE_LOADER_DIR%"
 
-echo Downloading Loader.zip...
-powershell -NoProfile -Command ^
- "Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile '%ZIP_PATH%' -UseBasicParsing"
+echo [*] Downloading Loader.zip...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"try { ^
+  Invoke-WebRequest -UseBasicParsing -Uri '%ZIP_URL%' -OutFile '%ZIP_PATH%' -ErrorAction Stop; ^
+  exit 0 ^
+} catch { ^
+  Write-Host '[ERROR] Download failed:' $_.Exception.Message; ^
+  exit 1 ^
+}"
 
-if not exist "%ZIP_PATH%" (
+if errorlevel 1 (
     echo [ERROR] Failed to download Loader.zip
+    echo        URL:  %ZIP_URL%
+    echo        Path: %ZIP_PATH%
     pause
     goto mainmenu
 )
 
-echo Extracting Loader.exe...
-powershell -NoProfile -Command ^
- "Expand-Archive -Path '%ZIP_PATH%' -DestinationPath '%WAVE_DIR%' -Force"
+if not exist "%ZIP_PATH%" (
+    echo [ERROR] Download reported success but file is missing.
+    echo        Path: %ZIP_PATH%
+    pause
+    goto mainmenu
+)
+
+for %%A in ("%ZIP_PATH%") do echo [*] Downloaded bytes: %%~zA
+echo.
+
+:: ===================== EXTRACT LOADER =====================
+echo [*] Extracting Loader...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"try { ^
+  Expand-Archive -Force '%ZIP_PATH%' '%WAVE_LOADER_DIR%' -ErrorAction Stop; ^
+  exit 0 ^
+} catch { ^
+  Write-Host '[ERROR] Extract failed:' $_.Exception.Message; ^
+  exit 1 ^
+}"
 
 del "%ZIP_PATH%" >nul 2>&1
 
-if exist "%WAVE_DIR%\Loader.exe" (
-    echo [+] Loader installed successfully.
-) else (
-    echo [ERROR] Loader.exe not found after extraction.
+if errorlevel 1 (
+    echo [ERROR] Extraction failed.
     pause
     goto mainmenu
 )
 
+:: Find Loader.exe even if it extracted into a subfolder
+set "FOUND_LOADER="
+for /r "%WAVE_LOADER_DIR%" %%F in (Loader.exe) do (
+    set "FOUND_LOADER=%%F"
+    goto :LoaderFound
+)
+
+:LoaderFound
+if defined FOUND_LOADER (
+    echo [+] Loader installed: "%FOUND_LOADER%"
+) else (
+    echo [ERROR] Loader.exe not found after extraction.
+    echo [*] Files containing "loader" under "%WAVE_LOADER_DIR%":
+    dir /s /b "%WAVE_LOADER_DIR%" | findstr /i "loader"
+    pause
+    goto mainmenu
+)
+
+echo.
+
 :: ===================== LAUNCH WAVE =====================
 if exist "%USERPROFILE%\Desktop\wave.lnk" (
-    explorer "%USERPROFILE%\Desktop\wave.lnk"
-    goto mainmenu
+    echo     - Found Desktop shortcut
+    start "" "%USERPROFILE%\Desktop\wave.lnk"
+    goto :LoaderLaunchDone
 )
 
 if exist "%USERPROFILE%\Desktop\wave.exe" (
+    echo     - Found Desktop exe
     start "" "%USERPROFILE%\Desktop\wave.exe"
-    goto mainmenu
+    goto :LoaderLaunchDone
 )
 
 if exist "%USERPROFILE%\Downloads\wave.exe" (
+    echo     - Found Downloads exe
     start "" "%USERPROFILE%\Downloads\wave.exe"
-    goto mainmenu
+    goto :LoaderLaunchDone
 )
 
 if exist "%USERPROFILE%\WaveSetup\Wave.exe" (
+    echo     - Found WaveSetup exe
     start "" "%USERPROFILE%\WaveSetup\Wave.exe"
-    goto mainmenu
+    goto :LoaderLaunchDone
 )
 
 if exist "%LOCALAPPDATA%\wave\wave.exe" (
+    echo     - Found LocalAppData exe
     start "" "%LOCALAPPDATA%\wave\wave.exe"
-    goto mainmenu
+    goto :LoaderLaunchDone
 )
 
 echo [WARN] Wave.exe not found.
 pause
+goto mainmenu
+
+:LoaderLaunchDone
+echo [*] Wave launched successfully.
+timeout /t 2 >nul
 goto mainmenu
 
 
@@ -811,6 +862,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
