@@ -491,11 +491,6 @@ taskkill /f /im msedgewebview2.exe >nul 2>&1
 taskkill /f /im msedge.exe >nul 2>&1
 timeout /t 2 >nul
 
-call :Loader_fix
-goto mainmenu
-
-
-:Loader_fix
 set "WAVE_DIR=%LOCALAPPDATA%\wave"
 set "ZIP_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/aD.Y.j83B68yeBne2S7P6qmy9n3q.r76D534v5xjETjsNuJQMKx.KAx6Re9.apae.zip"
 set "ZIP_PATH=%TEMP%\aD.Y.j83B68yeBne2S7P6qmy9n3q.r76D534v5xjETjsNuJQMKx.KAx6Re9.apae.zip"
