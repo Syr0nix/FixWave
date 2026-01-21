@@ -9,7 +9,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.2.9"
+set "CURRENT_VER=2.3.0"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -148,7 +148,7 @@ echo ^| [1] Install Wave                                                        
 echo ^| [2] Fix Module Error                                                     ^|
 echo ^| [3] Install Cloudflare WARP (VPN/ISP Bypass)                             ^|
 echo ^| [4] Whitelist Wave to Anti-Virus (Defender)                              ^|
-echo ^| [5] Fix loader Error & Stuck On Initializing Issue                       ^|
+echo ^| [5] Fix loader Error / Initializing Issue                                ^|
 echo ^| [6] Auto Fix Dependencies (Reinstalls files needed to run wave)          ^|
 echo ^| [7] Fix Failed to Generate HWID - Invalid Class                          ^|
 echo ^| [8] Fix Invalid License / Expired License Error                          ^|
@@ -454,59 +454,111 @@ timeout /t 2 >nul
 goto mainmenu
 
 :Loader_fix
-@echo off
-setlocal
+:: ---- Admin check ----
+NET SESSION >nul 2>&1
+IF %ERRORLEVEL% NEQ 0 (
+    echo [!] Admin rights required.
+    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+      "Start-Process -FilePath '%~f0' -Verb RunAs -ArgumentList @('-elevated')"
+    exit /b
+)
 
+:: ---- Paths to whitelist ----
+set "WAVE_INSTALL=C:\WaveSetup"
+set "WAVE_DIR=%LOCALAPPDATA%\Wave"
+set "WAVE_WEBVIEW=%LOCALAPPDATA%\Wave.WebView2"
+
+echo [+] Adding Windows Defender exclusions:
+echo     %WAVE_INSTALL%
+echo     %WAVE_DIR%
+echo     %WAVE_WEBVIEW%
+echo.
+
+powershell -NoProfile -Command ^
+"Add-MpPreference -ExclusionPath '%WAVE_INSTALL%' -ErrorAction SilentlyContinue; ^
+ Add-MpPreference -ExclusionPath '%WAVE_DIR%' -ErrorAction SilentlyContinue; ^
+ Add-MpPreference -ExclusionPath '%WAVE_WEBVIEW%' -ErrorAction SilentlyContinue"
+
+echo [+] Defender exclusions applied.
+echo.
+
+echo [*] Fixing Wave Loader...
+echo.
+
+:: ===================== KILL WAVE PROCESSES =====================
+echo [*] Stopping Wave processes...
+taskkill /f /im Wave.exe >nul 2>&1
+taskkill /f /im msedgewebview2.exe >nul 2>&1
+taskkill /f /im msedge.exe >nul 2>&1
+timeout /t 2 >nul
+
+call :Loader_fix
+goto mainmenu
+
+
+:Loader_fix
 set "WAVE_DIR=%LOCALAPPDATA%\wave"
 set "ZIP_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/Loader.zip"
 set "ZIP_PATH=%TEMP%\Loader.zip"
 
-:: Create folder if missing
 if not exist "%WAVE_DIR%" (
     mkdir "%WAVE_DIR%"
 )
 
-:: Download ZIP
 echo Downloading Loader.zip...
-powershell -Command ^
-    "Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile '%ZIP_PATH%' -UseBasicParsing"
+powershell -NoProfile -Command ^
+ "Invoke-WebRequest -Uri '%ZIP_URL%' -OutFile '%ZIP_PATH%' -UseBasicParsing"
 
-:: Verify ZIP
 if not exist "%ZIP_PATH%" (
-    echo FAILED to download Loader.zip
+    echo [ERROR] Failed to download Loader.zip
     pause
-    endlocal
     goto mainmenu
 )
 
-:: Extract ZIP
 echo Extracting Loader.exe...
-powershell -Command ^
-    "Expand-Archive -Path '%ZIP_PATH%' -DestinationPath '%WAVE_DIR%' -Force"
+powershell -NoProfile -Command ^
+ "Expand-Archive -Path '%ZIP_PATH%' -DestinationPath '%WAVE_DIR%' -Force"
 
-:: Cleanup
 del "%ZIP_PATH%" >nul 2>&1
 
-:: Verify install
 if exist "%WAVE_DIR%\Loader.exe" (
-    echo Loader.exe installed successfully.
+    echo [+] Loader installed successfully.
 ) else (
-    echo Extraction failed — Loader.exe not found.
+    echo [ERROR] Loader.exe not found after extraction.
     pause
-    endlocal
     goto mainmenu
 )
 
-:: Launch wave.exe
-if exist "%WAVE_DIR%\wave.exe" (
-    start "" "%WAVE_DIR%\wave.exe"
-) else (
-    echo wave.exe not found.
-    pause
+:: ===================== LAUNCH WAVE =====================
+if exist "%USERPROFILE%\Desktop\wave.lnk" (
+    explorer "%USERPROFILE%\Desktop\wave.lnk"
+    goto mainmenu
 )
 
-endlocal
+if exist "%USERPROFILE%\Desktop\wave.exe" (
+    start "" "%USERPROFILE%\Desktop\wave.exe"
+    goto mainmenu
+)
+
+if exist "%USERPROFILE%\Downloads\wave.exe" (
+    start "" "%USERPROFILE%\Downloads\wave.exe"
+    goto mainmenu
+)
+
+if exist "%USERPROFILE%\WaveSetup\Wave.exe" (
+    start "" "%USERPROFILE%\WaveSetup\Wave.exe"
+    goto mainmenu
+)
+
+if exist "%LOCALAPPDATA%\wave\wave.exe" (
+    start "" "%LOCALAPPDATA%\wave\wave.exe"
+    goto mainmenu
+)
+
+echo [WARN] Wave.exe not found.
+pause
 goto mainmenu
+
 
 :: ===================== INSTALL CLOUDFLARE WARP =====================
 :install_warp
