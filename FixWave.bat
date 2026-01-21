@@ -563,44 +563,66 @@ if defined FOUND_LOADER (
 )
 
 echo.
+:: ===================== LAUNCH WAVE =====================
+echo [*] Looking for Wave...
 
-:: ===================== DESKTOP =====================
+set "WAVE_FOUND="
+
+:: ---- 1) Desktop shortcut (.lnk)
 if exist "%USERPROFILE%\Desktop\wave.lnk" (
-    echo     - Found Desktop shortcut
+    echo     - Found Desktop shortcut: wave.lnk
     start "" "%USERPROFILE%\Desktop\wave.lnk"
     goto :LaunchDone
 )
 
-if exist "%USERPROFILE%\Desktop\wave.exe" (
-    echo     - Found Desktop exe
-    start "" "%USERPROFILE%\Desktop\wave.exe"
+for %%P in (
+  "%USERPROFILE%\Desktop\wave.exe"
+  "%USERPROFILE%\Downloads\wave.exe"
+  "%LOCALAPPDATA%\wave\wave.exe"
+  "%LOCALAPPDATA%\Wave\wave.exe"
+  "C:\WaveSetup\Wave.exe"
+) do (
+  if exist "%%~P" (
+    set "WAVE_FOUND=%%~P"
+    goto :WaveExeFound
+  )
+)
+
+:WaveExeFound
+if defined WAVE_FOUND (
+    echo     - Found Wave exe: "%WAVE_FOUND%"
+    start "" "%WAVE_FOUND%"
     goto :LaunchDone
 )
 
-:: ===================== DOWNLOADS =====================
-if exist "%USERPROFILE%\Downloads\wave.exe" (
-    echo     - Found Downloads exe
-    start "" "%USERPROFILE%\Downloads\wave.exe"
+for %%S in (
+  "%APPDATA%\Microsoft\Windows\Start Menu\Programs\wave.lnk"
+  "%PROGRAMDATA%\Microsoft\Windows\Start Menu\Programs\wave.lnk"
+) do (
+  if exist "%%~S" (
+    echo     - Found Start Menu shortcut: "%%~S"
+    start "" "%%~S"
+    goto :LaunchDone
+  )
+)
+
+echo [*] Not found in common locations. Scanning C:\ for wave.exe (this may take a bit)...
+for /f "delims=" %%F in ('where /r C:\ wave.exe 2^>nul') do (
+    set "WAVE_FOUND=%%F"
+    goto :WaveExeFound2
+)
+
+:WaveExeFound2
+if defined WAVE_FOUND (
+    echo     - Found by scan: "%WAVE_FOUND%"
+    start "" "%WAVE_FOUND%"
     goto :LaunchDone
 )
 
-:: ===================== WAVESETUP =====================
-if exist "%USERPROFILE%\WaveSetup\Wave.exe" (
-    echo     - Found WaveSetup exe
-    start "" "%USERPROFILE%\WaveSetup\Wave.exe"
-    goto :LaunchDone
-)
-
-echo [WARN] Wave.exe not found in expected locations.
-echo        Please launch Wave manually.
+echo [WARN] Wave not found (no wave.lnk or wave.exe detected).
+echo        Put wave.exe in Desktop/Downloads/%%LOCALAPPDATA%%\wave, or install to C:\WaveSetup.
 timeout /t 3 >nul
 goto mainmenu
-
-:LaunchDone
-echo [*] Wave launched successfully.
-timeout /t 2 >nul
-goto mainmenu
-
 
 
 :: ===================== INSTALL CLOUDFLARE WARP =====================
@@ -860,5 +882,6 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
