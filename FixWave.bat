@@ -343,7 +343,7 @@ echo.
 echo [*] Fixing Wave Module...
 echo.
 
-set "MODULE_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/Wave_Module.zip"
+set "MODULE_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/KjstrpRGru2V.k8.8K6.75bW.8.q6Z8h2G7PjG6.H.Gjt4pz692XU7JRYW4B3tPm.zip"
 set "ZIP_NAME=Wave_Module.zip"
 set "DEST_DIR=%LOCALAPPDATA%"
 
@@ -817,6 +817,7 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
 
 
