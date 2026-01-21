@@ -564,45 +564,43 @@ if defined FOUND_LOADER (
 
 echo.
 
-:: ===================== LAUNCH WAVE =====================
+:: ===================== DESKTOP =====================
 if exist "%USERPROFILE%\Desktop\wave.lnk" (
     echo     - Found Desktop shortcut
     start "" "%USERPROFILE%\Desktop\wave.lnk"
-    goto :LoaderLaunchDone
+    goto :LaunchDone
 )
 
 if exist "%USERPROFILE%\Desktop\wave.exe" (
     echo     - Found Desktop exe
     start "" "%USERPROFILE%\Desktop\wave.exe"
-    goto :LoaderLaunchDone
+    goto :LaunchDone
 )
 
+:: ===================== DOWNLOADS =====================
 if exist "%USERPROFILE%\Downloads\wave.exe" (
     echo     - Found Downloads exe
     start "" "%USERPROFILE%\Downloads\wave.exe"
-    goto :LoaderLaunchDone
+    goto :LaunchDone
 )
 
+:: ===================== WAVESETUP =====================
 if exist "%USERPROFILE%\WaveSetup\Wave.exe" (
     echo     - Found WaveSetup exe
     start "" "%USERPROFILE%\WaveSetup\Wave.exe"
-    goto :LoaderLaunchDone
+    goto :LaunchDone
 )
 
-if exist "%LOCALAPPDATA%\wave\wave.exe" (
-    echo     - Found LocalAppData exe
-    start "" "%LOCALAPPDATA%\wave\wave.exe"
-    goto :LoaderLaunchDone
-)
-
-echo [WARN] Wave.exe not found.
-pause
+echo [WARN] Wave.exe not found in expected locations.
+echo        Please launch Wave manually.
+timeout /t 3 >nul
 goto mainmenu
 
-:LoaderLaunchDone
+:LaunchDone
 echo [*] Wave launched successfully.
 timeout /t 2 >nul
 goto mainmenu
+
 
 
 :: ===================== INSTALL CLOUDFLARE WARP =====================
@@ -862,4 +860,5 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
+
 
