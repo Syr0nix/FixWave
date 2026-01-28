@@ -538,7 +538,6 @@ echo        Put wave.exe in Desktop/Downloads/%%LOCALAPPDATA%%\wave, or install 
 timeout /t 3 >nul
 goto mainmenu
 
-:: ===================== INSTALL CLOUDFLARE WARP =====================
 :install_warp
 cls
 echo +==========================================================================+
@@ -567,11 +566,9 @@ if exist "%WarpCliPath%" (
 pause
 goto mainmenu
 
-:: ===================== TIME_CLOCK_SYNC + FLUSH_DNS =====================
 :TIME_DNS_FIX
 cls
 color 0B
-
 echo ==========================================
 echo   Time Clock Sync + DNS Flush
 echo ==========================================
@@ -596,11 +593,9 @@ echo.
 pause
 goto mainmenu
 
-:: ===================== AUTO_FIX_HWID (REBOOT ONLY IF NEEDED) =====================
 :Auto_Fix_HWID
 cls
 set "NEED_REBOOT=0"
-
 echo ==========================================
 echo   Auto Fix HWID - WMI Repair Tool
 echo ==========================================
@@ -609,7 +604,6 @@ echo [1] Testing HWID via CIM...
 powershell -NoProfile -Command ^
 "$u=(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; ^
  if($u){Write-Host '[OK] UUID:' $u; exit 0} else {exit 1}"
-
 IF %ERRORLEVEL% EQU 0 (
     echo.
     echo [*] HWID is already working. No fix needed.
@@ -634,7 +628,6 @@ echo [3] Re-testing HWID after salvage...
 powershell -NoProfile -Command ^
 "$u=(Get-CimInstance Win32_ComputerSystemProduct -ErrorAction SilentlyContinue).UUID; ^
  if($u){Write-Host '[OK] UUID:' $u; exit 0} else {exit 1}"
-
 IF %ERRORLEVEL% EQU 0 (
     echo.
     echo [*] Fixed without rebuild.
@@ -653,7 +646,6 @@ IF %ERRORLEVEL% EQU 0 (
 echo.
 echo [4] Rebuilding WMI repository (safe rename)...
 set "NEED_REBOOT=1"
-
 net stop winmgmt /y >nul 2>&1
 if exist "%windir%\System32\wbem\Repository" (
     ren "%windir%\System32\wbem\Repository" Repository.old_%RANDOM%
@@ -668,21 +660,17 @@ echo [6] Re-registering WMI components...
 cd /d %windir%\System32\wbem
 for %%i in (*.dll) do regsvr32 /s %%i
 for %%i in (*.mof *.mfl) do mofcomp %%i
-
 echo.
 echo ==========================================
 echo   Repair complete.
 echo   Reboot is REQUIRED to finish.
 echo ==========================================
 echo.
-
 choice /C YN /N /M "Reboot now? (Y/N): "
 if errorlevel 2 goto mainmenu
-
 shutdown /r /t 5 /c "Auto Fix HWID - Completing WMI repair"
 exit /b
 
-:: ===================== AUTO FIX RUNTIMES =====================
 :Auto_Fix_Runtimes
 cls
 echo +==========================================================================+
@@ -728,7 +716,6 @@ echo [Success] Repair complete.
 pause
 goto mainmenu
 
-:: ===================== BOOTSTRAPPER MENU =====================
 :boot_menu
 cls
 echo +==========================================================================+
@@ -757,7 +744,6 @@ if /I "%CHOICE%"=="3" (
 )
 if /I "%CHOICE%"=="B" goto mainmenu
 if not defined BOOT_NAME goto boot_menu
-
 if not exist "%TargetDir%\Boot" mkdir "%TargetDir%\Boot"
 set "BOOT_EXE=%TargetDir%\Boot\%BOOT_NAME%.exe"
 echo.
