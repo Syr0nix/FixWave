@@ -9,7 +9,7 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 :: ===================== DESKTOP GITHUB AUTO-UPDATE =====================
 
-set "CURRENT_VER=2.3.4"
+set "CURRENT_VER=2.3.5"
 
 set "RAW_VER=https://raw.githubusercontent.com/Syr0nix/FixWave/main/version.txt"
 set "RAW_BAT=https://raw.githubusercontent.com/Syr0nix/FixWave/main/FixWave.bat"
@@ -342,7 +342,7 @@ echo.
 echo [*] Fixing Wave Module...
 echo.
 
-set "MODULE_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/KjstrpRGru2V.k8.8K6.75bW.8.q6Z8h2G7PjG6.H.Gjt4pz692XU7JRYW4B3tPm.zip"
+set "MODULE_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/Module.zip "
 set "ZIP_NAME=Wave_Module.zip"
 set "DEST_DIR=%LOCALAPPDATA%"
 
@@ -520,7 +520,7 @@ timeout /t 2 >nul
 
 :: ===================== DOWNLOAD LOADER ZIP =====================
 set "WAVE_LOADER_DIR=%LOCALAPPDATA%\wave"
-set "ZIP_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/aD.Y.j83B68yeBne2S7P6qmy9n3q.r76D534v5xjETjsNuJQMKx.KAx6Re9.apae.zip"
+set "ZIP_URL=https://github.com/Syr0nix/FixWave/releases/download/Module/Loader.zip"
 set "ZIP_PATH=%TEMP%\Loader.zip"
 
 if not exist "%WAVE_LOADER_DIR%" mkdir "%WAVE_LOADER_DIR%"
@@ -910,8 +910,3 @@ echo Saved in C:\WaveSetup\Boot
 pause
 
 goto mainmenu
-
-
-
-
-
